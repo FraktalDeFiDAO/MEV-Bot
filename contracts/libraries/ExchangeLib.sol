@@ -50,4 +50,5 @@ library ExchangeLib {
             exchanges[i] = es.info[i];
         }
     }
+
 }

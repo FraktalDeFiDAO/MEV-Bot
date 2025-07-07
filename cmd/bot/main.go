@@ -4,7 +4,8 @@ import (
 	"context"
 	"log"
 
-       "github.com/FraktalDeFiDAO/MEV-Bot/pkg/ethutil"
+  "github.com/FraktalDeFiDAO/MEV-Bot/pkg/ethutil"
+
 )
 
 // Entry point for the MEV bot. Connects to an Arbitrum node and listens for events.
@@ -23,3 +24,4 @@ func main() {
 
 	// TODO: subscribe to dex events, transactions and sequencer feed
 }
+
