@@ -21,6 +21,7 @@ This project explores building a MEV bot targeting decentralized exchanges on Ar
    `ethutil.ConnectClient` provides a simple wrapper for creating Ethereum RPC
    clients.
 
+
 The repo now includes a `Registry` contract that stores token, exchange and pool metadata using library based diamond storage. It forms the on-chain
 configuration for the bot and demonstrates how components remain modular.
 

@@ -58,6 +58,7 @@ contract Registry {
         return ExchangeLib.getExchanges();
     }
 
+
     // ---- pool management ----
     function addPool(address pool, address token0, address token1, uint256 exchangeId) external {
         PoolLib.addPool(pool, token0, token1, exchangeId);
@@ -78,4 +79,5 @@ contract Registry {
     function getPools() external view returns (address[] memory) {
         return PoolLib.getPools();
     }
+
 }
