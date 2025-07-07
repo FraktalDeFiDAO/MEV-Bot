@@ -15,6 +15,10 @@ This project explores building a MEV bot targeting decentralized exchanges on Ar
    ```
    After cloning the repo, run `forge install` to fetch the testing
    libraries such as `forge-std`.
+
+   The `lib` directory is not committed to git, so you may need to run this
+   step whenever you clone a fresh repository.
+
 2. Run `forge test` to compile and test the contracts.
 3. Build the Go bot with `go build ./cmd/bot` and run the Go tests with `go test ./...`.
    Utility packages under `pkg/` keep the bot logic modular. For example,
