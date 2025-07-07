@@ -46,4 +46,17 @@ library TokenLib {
     function isTokenEnabled(address token) internal view returns (bool) {
         return tokenStorage().info[token].enabled;
     }
+
+    function getToken(address token) internal view returns (TokenInfo memory) {
+        return tokenStorage().info[token];
+    }
+
+    function getTokens() internal view returns (address[] memory tokens) {
+        TokenStorage storage ts = tokenStorage();
+        tokens = new address[](ts.tokens.length);
+        for (uint256 i = 0; i < ts.tokens.length; i++) {
+            tokens[i] = ts.tokens[i];
+        }
+    }
+
 }

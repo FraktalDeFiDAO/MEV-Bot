@@ -29,6 +29,14 @@ contract Registry {
         return TokenLib.isTokenEnabled(token);
     }
 
+    function getToken(address token) external view returns (TokenLib.TokenInfo memory) {
+        return TokenLib.getToken(token);
+    }
+
+    function getTokens() external view returns (address[] memory) {
+        return TokenLib.getTokens();
+    }
+
     // ---- exchange management ----
     function addExchange(string calldata name, address router) external returns (uint256 id) {
         return ExchangeLib.addExchange(name, router);
@@ -42,6 +50,15 @@ contract Registry {
         return ExchangeLib.getExchange(id);
     }
 
+    function getExchangeCount() external view returns (uint256) {
+        return ExchangeLib.getExchangeCount();
+    }
+
+    function getExchanges() external view returns (ExchangeLib.ExchangeInfo[] memory) {
+        return ExchangeLib.getExchanges();
+    }
+
+
     // ---- pool management ----
     function addPool(address pool, address token0, address token1, uint256 exchangeId) external {
         PoolLib.addPool(pool, token0, token1, exchangeId);
@@ -54,4 +71,13 @@ contract Registry {
     function isPoolEnabled(address pool) external view returns (bool) {
         return PoolLib.isPoolEnabled(pool);
     }
+
+    function getPool(address pool) external view returns (PoolLib.PoolInfo memory) {
+        return PoolLib.getPool(pool);
+    }
+
+    function getPools() external view returns (address[] memory) {
+        return PoolLib.getPools();
+    }
+
 }
