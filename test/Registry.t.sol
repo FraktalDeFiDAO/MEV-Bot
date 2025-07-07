@@ -7,6 +7,7 @@ import "../contracts/libraries/TokenLib.sol";
 import "../contracts/libraries/ExchangeLib.sol";
 import "../contracts/libraries/PoolLib.sol";
 
+
 contract RegistryTest is Test {
     Registry registry;
 
@@ -41,6 +42,7 @@ contract RegistryTest is Test {
         assertTrue(info.enabled);
     }
 
+
     function testAddExchangeAndPool() public {
         uint256 id = registry.addExchange("UniV2", address(11));
         registry.addPool(address(99), address(1), address(2), id);
@@ -55,5 +57,6 @@ contract RegistryTest is Test {
         assertEq(pools[0], address(99));
         PoolLib.PoolInfo memory pinfo = registry.getPool(address(99));
         assertEq(pinfo.token0, address(1));
+
     }
 }

@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/example/mev-bot/pkg/ethutil"
+
 )
 
 // Entry point for the MEV bot. Connects to an Arbitrum node and listens for events.
@@ -23,3 +24,4 @@ func main() {
 
 	// TODO: subscribe to dex events, transactions and sequencer feed
 }
+
