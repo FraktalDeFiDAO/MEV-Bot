@@ -38,4 +38,17 @@ library ExchangeLib {
     function getExchange(uint256 id) internal view returns (ExchangeInfo memory) {
         return exchangeStorage().info[id];
     }
+
+    function getExchangeCount() internal view returns (uint256) {
+        return exchangeStorage().nextId;
+    }
+
+    function getExchanges() internal view returns (ExchangeInfo[] memory exchanges) {
+        ExchangeStorage storage es = exchangeStorage();
+        exchanges = new ExchangeInfo[](es.nextId);
+        for (uint256 i = 0; i < es.nextId; i++) {
+            exchanges[i] = es.info[i];
+        }
+    }
+
 }

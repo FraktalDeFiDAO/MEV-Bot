@@ -41,4 +41,17 @@ library PoolLib {
     function isPoolEnabled(address pool) internal view returns (bool) {
         return poolStorage().info[pool].enabled;
     }
+
+    function getPool(address pool) internal view returns (PoolInfo memory) {
+        return poolStorage().info[pool];
+    }
+
+    function getPools() internal view returns (address[] memory pools) {
+        PoolStorage storage ps = poolStorage();
+        pools = new address[](ps.pools.length);
+        for (uint256 i = 0; i < ps.pools.length; i++) {
+            pools[i] = ps.pools[i];
+        }
+    }
+
 }

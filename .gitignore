@@ -132,3 +132,4 @@ dist
 # Foundry build artifacts
 out/
 cache/
+lib/
