@@ -8,11 +8,16 @@ This project explores building a MEV bot targeting decentralized exchanges on Ar
 
 ## Getting started
 
-1. Install [Foundry](https://book.getfoundry.sh/getting-started/installation).
+1. Install [Foundry](https://book.getfoundry.sh/getting-started/installation) using:
+   ```bash
+   curl -L https://foundry.paradigm.xyz | bash
+   source ~/.bashrc && foundryup
+   ```
+   After cloning the repo, run `forge install` to fetch the testing
+   libraries such as `forge-std`.
 2. Run `forge test` to compile and test the contracts.
-3. Build the Go bot with `go build ./cmd/bot`.
+3. Build the Go bot with `go build ./cmd/bot` and run the Go tests with `go test ./...`.
 
-This is a minimal MVP setup aiming to monitor Arbitrum transactions and eventually the sequencer for opportunities across multiple DEXes.
 
 The repo now includes a `Registry` contract that stores token, exchange and pool metadata using library based diamond storage. It forms the on-chain
 configuration for the bot and demonstrates how components remain modular.
@@ -26,4 +31,3 @@ go test ./...
 
 The goal is to watch Arbitrum events for arbitrage opportunities across many
 DEXes.
->>>>>>> s9mh77-codex/create-foundry.toml-for-solidity-testing
