@@ -15,7 +15,6 @@ This project explores building a MEV bot targeting decentralized exchanges on Ar
    ```
    After cloning the repo, run `forge install` to fetch the testing
    libraries such as `forge-std`.
-
    The `lib` directory is not committed to git, so you may need to run this
    step whenever you clone a fresh repository.
 

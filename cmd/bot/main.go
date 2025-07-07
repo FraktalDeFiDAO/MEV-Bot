@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/example/mev-bot/pkg/ethutil"
+  "github.com/FraktalDeFiDAO/MEV-Bot/pkg/ethutil"
 
 )
 

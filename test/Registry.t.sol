@@ -42,7 +42,6 @@ contract RegistryTest is Test {
         assertTrue(info.enabled);
     }
 
-
     function testAddExchangeAndPool() public {
         uint256 id = registry.addExchange("UniV2", address(11));
         registry.addPool(address(99), address(1), address(2), id);
