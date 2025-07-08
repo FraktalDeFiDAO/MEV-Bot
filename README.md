@@ -35,6 +35,10 @@ data.
 to execute a series of encoded calls within a single transaction. This makes it
 easy to chain swaps across multiple pools when seeking arbitrage opportunities.
 
+`ArbitrageCalculator` implements a small library that estimates the most
+profitable trade size between two constant product pools.  It helps the bot
+determine how much input to supply when performing cross-exchange arbitrage.
+
 Run both Solidity and Go tests with:
 
 ```bash
