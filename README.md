@@ -81,4 +81,14 @@ Run the container with your environment variables, for example:
 docker run --rm -e RPC_URL=https://arb1.arbitrum.io/rpc mev-bot
 ```
 
+To check Go test coverage you can run:
+
+```bash
+go test ./... -cover
+```
+
+See `.env.sample` for the full list of environment variables understood by the
+bot.
+
+
 
