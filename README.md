@@ -93,7 +93,7 @@ To check Go test coverage you can run:
 go test ./... -cover
 ```
 
-To calculate Solidity test coverage, run:
+\To calculate Solidity test coverage, run:
 
 ```bash
 forge coverage
