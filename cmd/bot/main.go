@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"log"
-
+	"os"
 	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/ethutil"
 	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/watcher"
 	"github.com/ethereum/go-ethereum"
@@ -53,7 +53,10 @@ func run(ctx context.Context, rpcURL string) error {
 }
 
 func main() {
-	rpcURL := "https://arb1.arbitrum.io/rpc"
+	rpcURL := os.Getenv("RPC_URL")
+	if rpcURL == "" {
+		rpcURL = "https://arb1.arbitrum.io/rpc"
+	}
 
 	if err := run(context.Background(), rpcURL); err != nil {
 		log.Fatalf("failed to connect to arbitrum rpc: %v", err)

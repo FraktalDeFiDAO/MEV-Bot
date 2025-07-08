@@ -64,4 +64,5 @@ DEXes.
 
 A sample `.env.sample` file is provided containing environment variables used by
 the Go bot, such as `RPC_URL` and `PRIVATE_KEY`. Copy it to `.env` and adjust the
-values as needed.
+values as needed. `RPC_URL` defaults to the public Arbitrum RPC endpoint if left
+unset.
