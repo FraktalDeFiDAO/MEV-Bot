@@ -1,4 +1,4 @@
-.PHONY: test solidity-test go-test build
+.PHONY: test solidity-test go-test build docker
 
 solidity-test:
 	forge test -vv
@@ -10,3 +10,6 @@ test: solidity-test go-test
 
 build:
 	go build ./cmd/bot
+
+docker:
+	docker build -t mev-bot .

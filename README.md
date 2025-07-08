@@ -66,3 +66,19 @@ A sample `.env.sample` file is provided containing environment variables used by
 the Go bot, such as `RPC_URL` and `PRIVATE_KEY`. Copy it to `.env` and adjust the
 values as needed. `RPC_URL` defaults to the public Arbitrum RPC endpoint if left
 unset.
+
+## Docker
+
+You can build a container image containing the bot binary:
+
+```bash
+docker build -t mev-bot .
+```
+
+Run the container with your environment variables, for example:
+
+```bash
+docker run --rm -e RPC_URL=https://arb1.arbitrum.io/rpc mev-bot
+```
+
+
