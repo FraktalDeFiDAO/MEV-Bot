@@ -55,5 +55,6 @@ contract RegistryTest is Test {
         assertEq(pools[0], address(99));
         PoolLib.PoolInfo memory pinfo = registry.getPool(address(99));
         assertEq(pinfo.token0, address(1));
+
     }
 }
