@@ -32,6 +32,7 @@ configuration for the bot and demonstrates how components remain modular.
 to execute a series of encoded calls within a single transaction. This makes it
 easy to chain swaps across multiple pools when seeking arbitrage opportunities.
 
+
 Run both Solidity and Go tests with:
 
 ```bash
