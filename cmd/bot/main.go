@@ -3,13 +3,20 @@ package main
 import (
 	"context"
 	"log"
+	"math/big"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 
 	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/ethutil"
 	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/watcher"
 	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
+
 )
 
 type runner interface{ Run(context.Context) error }
@@ -18,8 +25,21 @@ type runner interface{ Run(context.Context) error }
 var (
 	connectClient   = ethutil.ConnectClient
 	newBlockWatcher = func(sub watcher.HeaderSubscriber) runner { return watcher.NewBlockWatcher(sub) }
-	newEventWatcher = func(sub watcher.LogSubscriber, q ethereum.FilterQuery) runner { return watcher.NewEventWatcher(sub, q) }
+	tradeABI        abi.ABI
+	tradeEventID    common.Hash
+	newEventWatcher = func(sub watcher.LogSubscriber, q ethereum.FilterQuery) runner {
+		return watcher.NewEventWatcher(sub, q, profitLogHandler)
+	}
 )
+
+func init() {
+	var err error
+	tradeABI, err = abi.JSON(strings.NewReader(`[{"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint256","name":"amountIn","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"profit","type":"uint256"}],"name":"TradeExecuted","type":"event"}]`))
+	if err != nil {
+		panic(err)
+	}
+	tradeEventID = crypto.Keccak256Hash([]byte("TradeExecuted(uint256,uint256)"))
+}
 
 // Entry point for the MEV bot. Connects to an Arbitrum node and listens for events.
 
@@ -53,6 +73,23 @@ func run(ctx context.Context, rpcURL string) error {
 
 	<-ctx.Done()
 	return ctx.Err()
+}
+
+// profitLogHandler decodes TradeExecuted events and prints the profit.
+func profitLogHandler(l types.Log) {
+	if len(l.Topics) > 0 && l.Topics[0] == tradeEventID {
+		var ev struct {
+			AmountIn *big.Int
+			Profit   *big.Int
+		}
+		if err := tradeABI.UnpackIntoInterface(&ev, "TradeExecuted", l.Data); err == nil {
+			log.Printf("profit event input=%s profit=%s tx=%s", ev.AmountIn.String(), ev.Profit.String(), l.TxHash.Hex())
+		} else {
+			log.Printf("profit event decode error: %v", err)
+		}
+	} else {
+		log.Printf("log tx: %s", l.TxHash.Hex())
+	}
 }
 
 func main() {

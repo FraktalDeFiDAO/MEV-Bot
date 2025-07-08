@@ -95,7 +95,7 @@ func TestBlockWatcherRun(t *testing.T) {
 }
 
 func TestEventWatcherSubscribeError(t *testing.T) {
-	ew := NewEventWatcher(errLogSubscriber{err: errors.New("boom")}, ethereum.FilterQuery{})
+	ew := NewEventWatcher(errLogSubscriber{err: errors.New("boom")}, ethereum.FilterQuery{}, nil)
 	if err := ew.Run(context.Background()); err == nil {
 		t.Fatal("expected error")
 	}
@@ -103,13 +103,18 @@ func TestEventWatcherSubscribeError(t *testing.T) {
 
 func TestEventWatcherRun(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	ew := NewEventWatcher(goodLogSubscriber{}, ethereum.FilterQuery{})
+	called := false
+	handler := func(types.Log) { called = true }
+	ew := NewEventWatcher(goodLogSubscriber{}, ethereum.FilterQuery{}, handler)
 	go func() {
 		time.Sleep(50 * time.Millisecond)
 		cancel()
 	}()
 	if err := ew.Run(ctx); err != context.Canceled {
 		t.Fatalf("unexpected error: %v", err)
+	}
+	if !called {
+		t.Fatalf("handler not called")
 	}
 }
 
@@ -121,7 +126,7 @@ func TestBlockWatcherSubscriptionError(t *testing.T) {
 }
 
 func TestEventWatcherSubscriptionError(t *testing.T) {
-	ew := NewEventWatcher(errAfterLogSubscriber{}, ethereum.FilterQuery{})
+	ew := NewEventWatcher(errAfterLogSubscriber{}, ethereum.FilterQuery{}, nil)
 	if err := ew.Run(context.Background()); err == nil || err.Error() != "boom" {
 		t.Fatalf("expected boom, got %v", err)
 	}

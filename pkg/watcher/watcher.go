@@ -54,15 +54,19 @@ type LogSubscriber interface {
 	SubscribeFilterLogs(ctx context.Context, q ethereum.FilterQuery, ch chan<- types.Log) (ethereum.Subscription, error)
 }
 
+// LogHandler is called for each log received by an EventWatcher.
+type LogHandler func(types.Log)
+
 // EventWatcher listens for contract events based on a filter query.
 type EventWatcher struct {
-	sub   LogSubscriber
-	query ethereum.FilterQuery
+	sub     LogSubscriber
+	query   ethereum.FilterQuery
+	handler LogHandler
 }
 
-// NewEventWatcher creates an event watcher for the given query.
-func NewEventWatcher(sub LogSubscriber, q ethereum.FilterQuery) *EventWatcher {
-	return &EventWatcher{sub: sub, query: q}
+// NewEventWatcher creates an event watcher for the given query and handler.
+func NewEventWatcher(sub LogSubscriber, q ethereum.FilterQuery, h LogHandler) *EventWatcher {
+	return &EventWatcher{sub: sub, query: q, handler: h}
 }
 
 // Run subscribes to logs and prints their transaction hash until the context ends.
@@ -85,7 +89,11 @@ func (ew *EventWatcher) Run(ctx context.Context) error {
 				return err
 			}
 		case l := <-logsCh:
-			log.Printf("log tx: %s", l.TxHash.Hex())
+			if ew.handler != nil {
+				ew.handler(l)
+			} else {
+				log.Printf("log tx: %s", l.TxHash.Hex())
+			}
 		}
 	}
 }

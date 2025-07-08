@@ -43,9 +43,20 @@ contract MultiArbitrageExecutorTest is Test {
             fN[i] = 997;
             fD[i] = 1000;
         }
+        vm.recordLogs();
         uint256 beforeBal = tokenA.balanceOf(address(this));
         exec.execute(pairs, fN, fD, 500, 1);
         uint256 afterBal = tokenA.balanceOf(address(this));
         assertGt(afterBal, beforeBal);
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        bytes32 sig = keccak256("TradeExecuted(uint256,uint256)");
+        bool found;
+        for (uint256 i = 0; i < logs.length; i++) {
+            if (logs[i].topics[0] == sig) {
+                found = true;
+                break;
+            }
+        }
+        assertTrue(found);
     }
 }

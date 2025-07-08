@@ -59,7 +59,9 @@ func TestRun(t *testing.T) {
 	}
 	t.Cleanup(func() {
 		newBlockWatcher = func(sub watcher.HeaderSubscriber) runner { return watcher.NewBlockWatcher(sub) }
-		newEventWatcher = func(sub watcher.LogSubscriber, q ethereum.FilterQuery) runner { return watcher.NewEventWatcher(sub, q) }
+		newEventWatcher = func(sub watcher.LogSubscriber, q ethereum.FilterQuery) runner {
+			return watcher.NewEventWatcher(sub, q, profitLogHandler)
+		}
 	})
 
 	go func() {

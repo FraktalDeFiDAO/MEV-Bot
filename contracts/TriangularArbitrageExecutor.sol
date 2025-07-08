@@ -15,6 +15,8 @@ contract TriangularArbitrageExecutor {
     uint256 constant FEE_NUMERATOR = 997;
     uint256 constant FEE_DENOMINATOR = 1000;
 
+    event TradeExecuted(uint256 amountIn, uint256 profit);
+
     function _getAmountOut(uint256 amountIn, uint256 reserveIn, uint256 reserveOut) internal pure returns (uint256) {
         uint256 amountInWithFee = amountIn * FEE_NUMERATOR;
         return (amountInWithFee * reserveOut) / (reserveIn * FEE_DENOMINATOR + amountInWithFee);
@@ -69,5 +71,7 @@ contract TriangularArbitrageExecutor {
         MockERC20(IPair(pairBC).token1()).transfer(pairCA, outBC);
         uint256 outCA = _getAmountOut(outBC, ca0, ca1);
         IPair(pairCA).swap(0, outCA, msg.sender, new bytes(0));
+
+        emit TradeExecuted(bestIn, profit);
     }
 }

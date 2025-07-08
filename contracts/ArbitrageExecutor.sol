@@ -15,6 +15,8 @@ contract ArbitrageExecutor {
     uint256 constant FEE_NUMERATOR = 997;
     uint256 constant FEE_DENOMINATOR = 1000;
 
+    event TradeExecuted(uint256 amountIn, uint256 profit);
+
     function _getAmountOut(uint256 amountIn, uint256 reserveIn, uint256 reserveOut) internal pure returns (uint256) {
         uint256 amountInWithFee = amountIn * FEE_NUMERATOR;
         return (amountInWithFee * reserveOut) / (reserveIn * FEE_DENOMINATOR + amountInWithFee);
@@ -44,6 +46,8 @@ contract ArbitrageExecutor {
         MockERC20(tokenB).transfer(pairB, out1);
         uint256 out2 = _getAmountOut(out1, b0, b1);
         IPair(pairB).swap(0, out2, msg.sender, new bytes(0));
+
+        emit TradeExecuted(bestIn, profit);
     }
 
     function _findBestInput(uint256 rA0, uint256 rA1, uint256 rB0, uint256 rB1, uint256 maxIn, uint256 step)

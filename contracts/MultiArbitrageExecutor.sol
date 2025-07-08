@@ -57,6 +57,8 @@ library MultiArbitrageLib {
 contract MultiArbitrageExecutor {
     using MultiArbitrageLib for uint256[];
 
+    event TradeExecuted(uint256 amountIn, uint256 profit);
+
     function execute(
         address[] calldata pairs,
         uint256[] calldata feeNumerators,
@@ -96,6 +98,8 @@ contract MultiArbitrageExecutor {
             }
             amountIn = amountOut;
         }
+
+        emit TradeExecuted(bestIn, profit);
     }
 }
 
