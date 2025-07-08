@@ -27,7 +27,8 @@ This project explores building a MEV bot targeting decentralized exchanges on Ar
   contract events using a filter query.
 4. Start the bot with `make run` (or `make run-dev` to run using `go run`).
    The bot automatically loads environment variables from a `.env` file if
-   present using `godotenv`.
+   present using `godotenv`. Set `DEBUG=1` to enable more verbose logging with
+   file and line numbers.
 
 The repo now includes a `Registry` contract that stores token, exchange and pool metadata using library based diamond storage. It forms the on-chain
 configuration for the bot and demonstrates how components remain modular.

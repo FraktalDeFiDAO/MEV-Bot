@@ -25,12 +25,15 @@ func NewBlockWatcher(sub HeaderSubscriber) *BlockWatcher {
 
 // Run subscribes to new block headers and logs them until the context is done.
 func (bw *BlockWatcher) Run(ctx context.Context) error {
+	log.Println("block watcher starting")
 	headers := make(chan *types.Header)
 	sub, err := bw.sub.SubscribeNewHead(ctx, headers)
 	if err != nil {
 		return err
 	}
 	defer sub.Unsubscribe()
+
+	defer log.Println("block watcher stopped")
 
 	for {
 		select {
@@ -64,12 +67,14 @@ func NewEventWatcher(sub LogSubscriber, q ethereum.FilterQuery) *EventWatcher {
 
 // Run subscribes to logs and prints their transaction hash until the context ends.
 func (ew *EventWatcher) Run(ctx context.Context) error {
+	log.Println("event watcher starting")
 	logsCh := make(chan types.Log)
 	sub, err := ew.sub.SubscribeFilterLogs(ctx, ew.query, logsCh)
 	if err != nil {
 		return err
 	}
 	defer sub.Unsubscribe()
+	defer log.Println("event watcher stopped")
 
 	for {
 		select {

@@ -59,6 +59,13 @@ func main() {
 	// load environment variables from .env if present
 	_ = godotenv.Load()
 
+	if os.Getenv("DEBUG") != "" {
+		log.SetFlags(log.LstdFlags | log.Lshortfile)
+		log.Println("debug logging enabled")
+	} else {
+		log.SetFlags(log.LstdFlags)
+	}
+
 	rpcURL := os.Getenv("RPC_URL")
 	if rpcURL == "" {
 		rpcURL = "https://arb1.arbitrum.io/rpc"
