@@ -29,7 +29,8 @@ contract MockPair {
         return (reserve0, reserve1, 0);
     }
 
-    function swap(uint amount0Out, uint amount1Out, address to, bytes calldata) external {
+    function swap(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata) external {
+
         if (amount0Out > 0) {
             require(amount0Out <= reserve0, "insufficient0");
             reserve0 -= uint112(amount0Out);

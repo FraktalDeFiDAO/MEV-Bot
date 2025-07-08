@@ -44,6 +44,12 @@ determine how much input to supply when performing cross-exchange arbitrage.
 an arbitrage across two constant product pools. The executor transfers tokens
 between the pairs and performs the swaps, returning any profit to the caller.
 
+`TriangularArbitrageCalculator` and `TriangularArbitrageExecutor` extend this
+idea to three pools. The calculator searches for the most profitable input
+amount when swapping through a cycle of three constant product pairs. The
+executor performs the swaps atomically, enabling triangular arbitrage across
+multiple DEXes.
+
 Run both Solidity and Go tests with:
 
  ```bash

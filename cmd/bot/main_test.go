@@ -21,17 +21,18 @@ func TestRunInvalidURL(t *testing.T) {
 }
 
 func TestRun(t *testing.T) {
-    if _, err := exec.LookPath("anvil"); err != nil {
-        t.Skip("anvil not installed")
-    }
+	if _, err := exec.LookPath("anvil"); err != nil {
+		t.Skip("anvil not installed")
+	}
 
-    ctx, cancel := context.WithCancel(context.Background())
-    cmd := exec.CommandContext(ctx, "anvil", "--port", "8545", "--chain-id", "31337")
-    cmd.Stdout = nil
-    cmd.Stderr = nil
-    if err := cmd.Start(); err != nil {
-        t.Fatalf("failed to start anvil: %v", err)
-    }
+	ctx, cancel := context.WithCancel(context.Background())
+	cmd := exec.CommandContext(ctx, "anvil", "--port", "8545", "--chain-id", "31337")
+	cmd.Stdout = nil
+	cmd.Stderr = nil
+	if err := cmd.Start(); err != nil {
+		t.Fatalf("failed to start anvil: %v", err)
+	}
+
 	t.Cleanup(func() {
 		cancel()
 		cmd.Process.Kill()
@@ -62,12 +63,13 @@ func TestRun(t *testing.T) {
 		newEventWatcher = func(sub watcher.LogSubscriber, q ethereum.FilterQuery) runner { return watcher.NewEventWatcher(sub, q) }
 	})
 
-        go func() {
-                // give run time to connect and start watchers before
-                // canceling the context so the test can exit cleanly
-                time.Sleep(500 * time.Millisecond)
-                cancel()
-        }()
+	go func() {
+		// give run time to connect and start watchers before
+		// canceling the context so the test can exit cleanly
+		time.Sleep(500 * time.Millisecond)
+		cancel()
+	}()
+
 
 	if err := run(ctx, "http://127.0.0.1:8545"); err != context.Canceled {
 		t.Fatalf("run failed: %v", err)

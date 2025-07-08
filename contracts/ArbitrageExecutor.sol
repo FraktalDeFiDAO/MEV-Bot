@@ -8,15 +8,15 @@ interface IPair {
     function token0() external view returns (address);
     function token1() external view returns (address);
     function getReserves() external view returns (uint112, uint112, uint32);
-    function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data) external;
+    function swap(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data) external;
 }
 
 contract ArbitrageExecutor {
     uint256 constant FEE_NUMERATOR = 997;
     uint256 constant FEE_DENOMINATOR = 1000;
 
-    function _getAmountOut(uint amountIn, uint reserveIn, uint reserveOut) internal pure returns (uint) {
-        uint amountInWithFee = amountIn * FEE_NUMERATOR;
+    function _getAmountOut(uint256 amountIn, uint256 reserveIn, uint256 reserveOut) internal pure returns (uint256) {
+        uint256 amountInWithFee = amountIn * FEE_NUMERATOR;
         return (amountInWithFee * reserveOut) / (reserveIn * FEE_DENOMINATOR + amountInWithFee);
     }
 
@@ -46,14 +46,12 @@ contract ArbitrageExecutor {
         IPair(pairB).swap(0, out2, msg.sender, new bytes(0));
     }
 
-    function _findBestInput(
-        uint256 rA0,
-        uint256 rA1,
-        uint256 rB0,
-        uint256 rB1,
-        uint256 maxIn,
-        uint256 step
-    ) internal pure returns (uint256 bestIn, uint256 bestProfit) {
+    function _findBestInput(uint256 rA0, uint256 rA1, uint256 rB0, uint256 rB1, uint256 maxIn, uint256 step)
+        internal
+        pure
+        returns (uint256 bestIn, uint256 bestProfit)
+    {
+
         for (uint256 i = step; i <= maxIn; i += step) {
             uint256 out1 = _getAmountOut(i, rA0, rA1);
             uint256 out2 = _getAmountOut(out1, rB0, rB1);
