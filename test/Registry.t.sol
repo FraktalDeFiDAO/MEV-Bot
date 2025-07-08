@@ -89,7 +89,6 @@ contract RegistryTest is Test {
         address[] memory pools = registry.getPools();
         assertEq(pools.length, 1);
     }
-
     function testGetPoolCount() public {
         uint256 id = registry.addExchange("UniV2", address(11));
         registry.addPool(address(1), address(2), address(3), id);
