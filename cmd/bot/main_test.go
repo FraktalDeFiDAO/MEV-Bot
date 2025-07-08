@@ -32,6 +32,7 @@ func TestRun(t *testing.T) {
 	if err := cmd.Start(); err != nil {
 		t.Fatalf("failed to start anvil: %v", err)
 	}
+
 	t.Cleanup(func() {
 		cancel()
 		cmd.Process.Kill()
@@ -68,6 +69,7 @@ func TestRun(t *testing.T) {
 		time.Sleep(500 * time.Millisecond)
 		cancel()
 	}()
+
 
 	if err := run(ctx, "http://127.0.0.1:8545"); err != context.Canceled {
 		t.Fatalf("run failed: %v", err)

@@ -18,6 +18,7 @@ library ArbitrageLib {
         pure
         returns (uint256)
     {
+
         uint256 out1 = getAmountOut(amountIn, rA0, rB0);
         uint256 out2 = getAmountOut(out1, rB1, rA1);
         return out2 > amountIn ? out2 - amountIn : 0;

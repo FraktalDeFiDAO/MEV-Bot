@@ -51,6 +51,7 @@ contract ArbitrageExecutor {
         pure
         returns (uint256 bestIn, uint256 bestProfit)
     {
+
         for (uint256 i = step; i <= maxIn; i += step) {
             uint256 out1 = _getAmountOut(i, rA0, rA1);
             uint256 out2 = _getAmountOut(out1, rB0, rB1);
