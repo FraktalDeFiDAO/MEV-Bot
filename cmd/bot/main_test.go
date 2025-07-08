@@ -32,7 +32,7 @@ func TestRun(t *testing.T) {
     if err := cmd.Start(); err != nil {
         t.Fatalf("failed to start anvil: %v", err)
     }
-	  t.Cleanup(func() {
+	t.Cleanup(func() {
 		cancel()
 		cmd.Process.Kill()
 		cmd.Wait()
@@ -62,10 +62,12 @@ func TestRun(t *testing.T) {
 		newEventWatcher = func(sub watcher.LogSubscriber, q ethereum.FilterQuery) runner { return watcher.NewEventWatcher(sub, q) }
 	})
 
-	go func() {
-		time.Sleep(100 * time.Millisecond)
-		cancel()
-	}()
+        go func() {
+                // give run time to connect and start watchers before
+                // canceling the context so the test can exit cleanly
+                time.Sleep(500 * time.Millisecond)
+                cancel()
+        }()
 
 	if err := run(ctx, "http://127.0.0.1:8545"); err != context.Canceled {
 		t.Fatalf("run failed: %v", err)
