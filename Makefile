@@ -1,15 +1,22 @@
-.PHONY: test solidity-test go-test build docker
+.RECIPEPREFIX := >
+.PHONY: test solidity-test go-test build docker run run-dev
 
 solidity-test:
-	forge test -vv
+>forge test -vv
 
 go-test:
-	go test ./...
+>go test ./...
 
 test: solidity-test go-test
 
 build:
-	go build ./cmd/bot
+>go build ./cmd/bot
 
 docker:
-	docker build -t mev-bot .
+>docker build -t mev-bot .
+
+run: build
+>./bot
+
+run-dev:
+>go run ./cmd/bot

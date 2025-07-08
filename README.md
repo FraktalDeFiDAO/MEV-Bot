@@ -25,6 +25,9 @@ This project explores building a MEV bot targeting decentralized exchanges on Ar
   clients. The `watcher` package offers utilities for observing chain activity.
   `BlockWatcher` logs new block headers, while `EventWatcher` can subscribe to
   contract events using a filter query.
+4. Start the bot with `make run` (or `make run-dev` to run using `go run`).
+   The bot automatically loads environment variables from a `.env` file if
+   present using `godotenv`.
 
 The repo now includes a `Registry` contract that stores token, exchange and pool metadata using library based diamond storage. It forms the on-chain
 configuration for the bot and demonstrates how components remain modular.
@@ -55,7 +58,6 @@ pools. It now accepts per‑pool fee settings so different exchanges like Uniswa
 V3 or Algebra can be mixed within a single cycle. Provide parallel arrays of fee
 numerators and denominators when calling `execute` to support directional fees.
 An example test demonstrates a three‑pair arbitrage executing successfully.
-
 
 Run both Solidity and Go tests with:
 

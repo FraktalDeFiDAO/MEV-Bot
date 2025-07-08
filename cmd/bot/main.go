@@ -5,6 +5,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/joho/godotenv"
+
 	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/ethutil"
 	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/watcher"
 	"github.com/ethereum/go-ethereum"
@@ -54,6 +56,9 @@ func run(ctx context.Context, rpcURL string) error {
 }
 
 func main() {
+	// load environment variables from .env if present
+	_ = godotenv.Load()
+
 	rpcURL := os.Getenv("RPC_URL")
 	if rpcURL == "" {
 		rpcURL = "https://arb1.arbitrum.io/rpc"
