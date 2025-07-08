@@ -32,7 +32,7 @@ func TestRun(t *testing.T) {
     if err := cmd.Start(); err != nil {
         t.Fatalf("failed to start anvil: %v", err)
     }
-	t.Cleanup(func() {
+	  t.Cleanup(func() {
 		cancel()
 		cmd.Process.Kill()
 		cmd.Wait()
