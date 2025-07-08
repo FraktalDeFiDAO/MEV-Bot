@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"os"
-
 	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/ethutil"
 	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/watcher"
 	"github.com/ethereum/go-ethereum"
