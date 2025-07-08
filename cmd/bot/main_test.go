@@ -1,10 +1,12 @@
 package main
 
-import "testing"
+import (
+	"context"
+	"testing"
+)
 
-func TestConnectClientInvalid(t *testing.T) {
-    _, err := ConnectClient(nil, "invalid://url")
-    if err == nil {
-        t.Fatal("expected error for invalid url")
-    }
+func TestRunInvalidURL(t *testing.T) {
+	if err := run(context.Background(), "http://127.0.0.1:0"); err == nil {
+		t.Fatal("expected error from invalid RPC URL")
+	}
 }

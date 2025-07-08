@@ -7,7 +7,6 @@ import "../contracts/libraries/TokenLib.sol";
 import "../contracts/libraries/ExchangeLib.sol";
 import "../contracts/libraries/PoolLib.sol";
 
-
 contract RegistryTest is Test {
     Registry registry;
 
@@ -42,7 +41,6 @@ contract RegistryTest is Test {
         assertTrue(info.enabled);
     }
 
-
     function testAddExchangeAndPool() public {
         uint256 id = registry.addExchange("UniV2", address(11));
         registry.addPool(address(99), address(1), address(2), id);
@@ -57,6 +55,63 @@ contract RegistryTest is Test {
         assertEq(pools[0], address(99));
         PoolLib.PoolInfo memory pinfo = registry.getPool(address(99));
         assertEq(pinfo.token0, address(1));
+    }
 
+    function testSetExchangeEnabled() public {
+        uint256 id = registry.addExchange("UniV2", address(11));
+        registry.setExchangeEnabled(id, false);
+        ExchangeLib.ExchangeInfo memory info = registry.getExchange(id);
+        assertTrue(!info.enabled);
+        registry.setExchangeEnabled(id, true);
+        assertTrue(registry.getExchange(id).enabled);
+    }
+
+    function testGetExchange() public {
+        uint256 id = registry.addExchange("UniV2", address(11));
+        ExchangeLib.ExchangeInfo memory info = registry.getExchange(id);
+        assertEq(info.name, "UniV2");
+        assertEq(info.router, address(11));
+        assertTrue(info.enabled);
+    }
+
+    function testSetExchangeEnabledMissing() public {
+        vm.expectRevert("exchange missing");
+        registry.setExchangeEnabled(1, true);
+    }
+
+    function testAddTokensLengthMismatch() public {
+        address[] memory addrs = new address[](2);
+        addrs[0] = address(5);
+        addrs[1] = address(6);
+        uint8[] memory dec = new uint8[](1);
+        dec[0] = 18;
+        vm.expectRevert("length mismatch");
+        registry.addTokens(addrs, dec);
+    }
+
+    function testAddTokenZeroAddress() public {
+        vm.expectRevert("zero token");
+        registry.addToken(address(0), 18);
+    }
+
+    function testSetTokenEnabledMissing() public {
+        vm.expectRevert("token missing");
+        registry.setTokenEnabled(address(77), true);
+    }
+
+    function testAddExchangeZeroRouter() public {
+        vm.expectRevert("zero router");
+        registry.addExchange("bad", address(0));
+    }
+
+    function testAddPoolZeroPool() public {
+        uint256 id = registry.addExchange("UniV2", address(11));
+        vm.expectRevert("zero pool");
+        registry.addPool(address(0), address(1), address(2), id);
+    }
+
+    function testSetPoolEnabledMissing() public {
+        vm.expectRevert("pool missing");
+        registry.setPoolEnabled(address(123), true);
     }
 }
