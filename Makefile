@@ -4,9 +4,12 @@
 CONTRACT ?= contracts/Registry.sol:Registry
 
 solidity-test:
+>[ -d lib/forge-std ] || forge install foundry-rs/forge-std
 >forge test -vv
 
 go-test:
+>go mod download
+
 >go test ./...
 
 test: solidity-test go-test
