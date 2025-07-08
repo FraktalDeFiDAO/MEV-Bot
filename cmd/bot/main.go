@@ -58,6 +58,4 @@ func main() {
 	if err := run(context.Background(), rpcURL); err != nil {
 		log.Fatalf("failed to connect to arbitrum rpc: %v", err)
 	}
-
-	// TODO: subscribe to dex events, transactions and sequencer feed
 }
