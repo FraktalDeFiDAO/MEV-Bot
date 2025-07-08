@@ -1,0 +1,6 @@
+# Docker ignore
+
+out
+cache
+lib/
+coverage.out
