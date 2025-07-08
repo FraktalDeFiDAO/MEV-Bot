@@ -53,6 +53,28 @@ func (goodLogSubscriber) SubscribeFilterLogs(ctx context.Context, q ethereum.Fil
 	return sub, nil
 }
 
+type errAfterSubscriber struct{}
+
+func (errAfterSubscriber) SubscribeNewHead(ctx context.Context, ch chan<- *types.Header) (ethereum.Subscription, error) {
+	sub := stubSub{errCh: make(chan error, 1)}
+	go func() {
+		ch <- &types.Header{Number: big.NewInt(1)}
+		sub.errCh <- errors.New("boom")
+	}()
+	return sub, nil
+}
+
+type errAfterLogSubscriber struct{}
+
+func (errAfterLogSubscriber) SubscribeFilterLogs(ctx context.Context, q ethereum.FilterQuery, ch chan<- types.Log) (ethereum.Subscription, error) {
+	sub := stubSub{errCh: make(chan error, 1)}
+	go func() {
+		ch <- types.Log{TxHash: common.HexToHash("0x2")}
+		sub.errCh <- errors.New("boom")
+	}()
+	return sub, nil
+}
+
 func TestBlockWatcherSubscribeError(t *testing.T) {
 	bw := NewBlockWatcher(errSubscriber{err: errors.New("boom")})
 	if err := bw.Run(context.Background()); err == nil {
@@ -90,3 +112,18 @@ func TestEventWatcherRun(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+func TestBlockWatcherSubscriptionError(t *testing.T) {
+	bw := NewBlockWatcher(errAfterSubscriber{})
+	if err := bw.Run(context.Background()); err == nil || err.Error() != "boom" {
+		t.Fatalf("expected boom, got %v", err)
+	}
+}
+
+func TestEventWatcherSubscriptionError(t *testing.T) {
+	ew := NewEventWatcher(errAfterLogSubscriber{}, ethereum.FilterQuery{})
+	if err := ew.Run(context.Background()); err == nil || err.Error() != "boom" {
+		t.Fatalf("expected boom, got %v", err)
+	}
+}
+

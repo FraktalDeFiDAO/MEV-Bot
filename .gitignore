@@ -133,4 +133,5 @@ dist
 out/
 cache/
 lib/
+coverage.out
 .gitmodules
