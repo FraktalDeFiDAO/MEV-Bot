@@ -51,11 +51,10 @@ executor performs the swaps atomically, enabling triangular arbitrage across
 multiple DEXes.
 
 `MultiArbitrageExecutor` further generalizes this to an arbitrary number of
-pools. It takes an array of Uniswap V2 style pairs and searches for the most
-profitable input amount before sequentially swapping through all pools in the
-cycle. An example test demonstrates a three‑pair arbitrage executing
-successfully.
-
+pools. It now accepts per‑pool fee settings so different exchanges like Uniswap
+V3 or Algebra can be mixed within a single cycle. Provide parallel arrays of fee
+numerators and denominators when calling `execute` to support directional fees.
+An example test demonstrates a three‑pair arbitrage executing successfully.
 Run both Solidity and Go tests with:
 
  ```bash
@@ -93,7 +92,7 @@ To check Go test coverage you can run:
 go test ./... -cover
 ```
 
-\To calculate Solidity test coverage, run:
+To calculate Solidity test coverage, run:
 
 ```bash
 forge coverage

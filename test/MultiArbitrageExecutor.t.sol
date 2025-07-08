@@ -37,8 +37,15 @@ contract MultiArbitrageExecutorTest is Test {
         pairs[0] = address(pairAB);
         pairs[1] = address(pairBC);
         pairs[2] = address(pairCA);
+        uint256[] memory fN = new uint256[](3);
+        uint256[] memory fD = new uint256[](3);
+        for (uint256 i = 0; i < 3; i++) {
+            fN[i] = 997;
+            fD[i] = 1000;
+        }
         uint256 beforeBal = tokenA.balanceOf(address(this));
-        exec.execute(pairs, 500, 1);
+        exec.execute(pairs, fN, fD, 500, 1);
+
         uint256 afterBal = tokenA.balanceOf(address(this));
         assertGt(afterBal, beforeBal);
     }

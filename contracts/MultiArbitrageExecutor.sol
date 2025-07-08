@@ -11,25 +11,41 @@ interface IPair {
 }
 
 library MultiArbitrageLib {
-    uint256 constant FEE_NUMERATOR = 997;
-    uint256 constant FEE_DENOMINATOR = 1000;
-
-    function getAmountOut(uint256 amountIn, uint256 reserveIn, uint256 reserveOut) internal pure returns (uint256) {
-        uint256 amountInWithFee = amountIn * FEE_NUMERATOR;
-        return (amountInWithFee * reserveOut) / (reserveIn * FEE_DENOMINATOR + amountInWithFee);
+    function getAmountOut(
+        uint256 amountIn,
+        uint256 reserveIn,
+        uint256 reserveOut,
+        uint256 feeNumerator,
+        uint256 feeDenominator
+    ) internal pure returns (uint256) {
+        uint256 amountInWithFee = amountIn * feeNumerator;
+        return (amountInWithFee * reserveOut) / (reserveIn * feeDenominator + amountInWithFee);
     }
 
-    function getProfit(uint256 amountIn, uint256[] memory r0, uint256[] memory r1) internal pure returns (uint256) {
+    function getProfit(
+        uint256 amountIn,
+        uint256[] memory r0,
+        uint256[] memory r1,
+        uint256[] memory feeN,
+        uint256[] memory feeD
+    ) internal pure returns (uint256) {
         uint256 out = amountIn;
         for (uint256 i = 0; i < r0.length; i++) {
-            out = getAmountOut(out, r0[i], r1[i]);
+            out = getAmountOut(out, r0[i], r1[i], feeN[i], feeD[i]);
         }
         return out > amountIn ? out - amountIn : 0;
     }
 
-    function findBestInput(uint256[] memory r0, uint256[] memory r1, uint256 maxIn, uint256 step) internal pure returns (uint256 bestIn, uint256 bestProfit) {
+    function findBestInput(
+        uint256[] memory r0,
+        uint256[] memory r1,
+        uint256[] memory feeN,
+        uint256[] memory feeD,
+        uint256 maxIn,
+        uint256 step
+    ) internal pure returns (uint256 bestIn, uint256 bestProfit) {
         for (uint256 i = step; i <= maxIn; i += step) {
-            uint256 p = getProfit(i, r0, r1);
+            uint256 p = getProfit(i, r0, r1, feeN, feeD);
             if (p > bestProfit) {
                 bestProfit = p;
                 bestIn = i;
@@ -41,8 +57,15 @@ library MultiArbitrageLib {
 contract MultiArbitrageExecutor {
     using MultiArbitrageLib for uint256[];
 
-    function execute(address[] calldata pairs, uint256 maxIn, uint256 step) external {
+    function execute(
+        address[] calldata pairs,
+        uint256[] calldata feeNumerators,
+        uint256[] calldata feeDenominators,
+        uint256 maxIn,
+        uint256 step
+    ) external {
         require(pairs.length >= 2, "need >=2 pairs");
+        require(pairs.length == feeNumerators.length && pairs.length == feeDenominators.length, "fee length");
 
         uint256[] memory r0 = new uint256[](pairs.length);
         uint256[] memory r1 = new uint256[](pairs.length);
@@ -58,7 +81,7 @@ contract MultiArbitrageExecutor {
             }
         }
 
-        (uint256 bestIn, uint256 profit) = MultiArbitrageLib.findBestInput(r0, r1, maxIn, step);
+        (uint256 bestIn, uint256 profit) = MultiArbitrageLib.findBestInput(r0, r1, feeNumerators, feeDenominators, maxIn, step);
         require(profit > 0, "no profit");
 
         address currentToken = inputToken;
@@ -66,7 +89,7 @@ contract MultiArbitrageExecutor {
         uint256 amountIn = bestIn;
         for (uint256 i = 0; i < pairs.length; i++) {
             address tokenOut = IPair(pairs[i]).token1();
-            uint256 amountOut = MultiArbitrageLib.getAmountOut(amountIn, r0[i], r1[i]);
+            uint256 amountOut = MultiArbitrageLib.getAmountOut(amountIn, r0[i], r1[i], feeNumerators[i], feeDenominators[i]);
             IPair(pairs[i]).swap(0, amountOut, i == pairs.length - 1 ? msg.sender : address(this), new bytes(0));
             if (i < pairs.length - 1) {
                 MockERC20(tokenOut).transfer(pairs[i+1], amountOut);
