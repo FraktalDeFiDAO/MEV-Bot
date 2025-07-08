@@ -50,6 +50,12 @@ amount when swapping through a cycle of three constant product pairs. The
 executor performs the swaps atomically, enabling triangular arbitrage across
 multiple DEXes.
 
+`MultiArbitrageExecutor` further generalizes this to an arbitrary number of
+pools. It takes an array of Uniswap V2 style pairs and searches for the most
+profitable input amount before sequentially swapping through all pools in the
+cycle. An example test demonstrates a three‑pair arbitrage executing
+successfully.
+
 Run both Solidity and Go tests with:
 
  ```bash
