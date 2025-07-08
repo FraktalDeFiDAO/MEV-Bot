@@ -17,12 +17,12 @@ This project explores building a MEV bot targeting decentralized exchanges on Ar
    libraries such as `forge-std`.
    The `lib` directory is not committed to git, so you may need to run this
    step whenever you clone a fresh repository.
-
 2. Run `forge test` to compile and test the contracts.
 3. Build the Go bot with `go build ./cmd/bot` and run the Go tests with `go test ./...`.
    Utility packages under `pkg/` keep the bot logic modular. For example,
-   `ethutil.ConnectClient` provides a simple wrapper for creating Ethereum RPC
-   clients.
+  `ethutil.ConnectClient` provides a simple wrapper for creating Ethereum RPC
+  clients. The `watcher` package offers a `BlockWatcher` utility that logs new
+  block headers using a subscription interface.
 
 
 The repo now includes a `Registry` contract that stores token, exchange and pool metadata using library based diamond storage. It forms the on-chain

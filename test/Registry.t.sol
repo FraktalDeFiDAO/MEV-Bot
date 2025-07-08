@@ -7,7 +7,6 @@ import "../contracts/libraries/TokenLib.sol";
 import "../contracts/libraries/ExchangeLib.sol";
 import "../contracts/libraries/PoolLib.sol";
 
-
 contract RegistryTest is Test {
     Registry registry;
 
