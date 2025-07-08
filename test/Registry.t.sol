@@ -57,6 +57,33 @@ contract RegistryTest is Test {
         assertEq(pinfo.token0, address(1));
     }
 
+    function testAddTokenDuplicate() public {
+        registry.addToken(address(1), 18);
+        registry.addToken(address(1), 18);
+        address[] memory tokens = registry.getTokens();
+        assertEq(tokens.length, 1);
+    }
+
+    function testExchangeIdsIncrement() public {
+        uint256 id0 = registry.addExchange("A", address(10));
+        uint256 id1 = registry.addExchange("B", address(11));
+        uint256 id2 = registry.addExchange("C", address(12));
+        assertEq(id0, 0);
+        assertEq(id1, 1);
+        assertEq(id2, 2);
+        assertEq(registry.getExchangeCount(), 3);
+        ExchangeLib.ExchangeInfo[] memory exs = registry.getExchanges();
+        assertEq(exs.length, 3);
+    }
+
+    function testAddPoolDuplicate() public {
+        uint256 id = registry.addExchange("UniV2", address(11));
+        registry.addPool(address(1), address(2), address(3), id);
+        registry.addPool(address(1), address(2), address(3), id);
+        address[] memory pools = registry.getPools();
+        assertEq(pools.length, 1);
+    }
+
     function testSetExchangeEnabled() public {
         uint256 id = registry.addExchange("UniV2", address(11));
         registry.setExchangeEnabled(id, false);

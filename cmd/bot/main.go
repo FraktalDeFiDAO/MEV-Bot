@@ -7,10 +7,13 @@ import (
 	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/ethutil"
 )
 
+// connectClient abstracts ethutil.ConnectClient for testability.
+var connectClient = ethutil.ConnectClient
+
 // Entry point for the MEV bot. Connects to an Arbitrum node and listens for events.
 
 func run(ctx context.Context, rpcURL string) error {
-	client, err := ethutil.ConnectClient(ctx, rpcURL)
+	client, err := connectClient(ctx, rpcURL)
 	if err != nil {
 		return err
 	}
