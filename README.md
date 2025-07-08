@@ -55,7 +55,6 @@ pools. It now accepts per‑pool fee settings so different exchanges like Uniswa
 V3 or Algebra can be mixed within a single cycle. Provide parallel arrays of fee
 numerators and denominators when calling `execute` to support directional fees.
 An example test demonstrates a three‑pair arbitrage executing successfully.
-
 Run both Solidity and Go tests with:
 
  ```bash

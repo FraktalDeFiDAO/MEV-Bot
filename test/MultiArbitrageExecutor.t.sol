@@ -45,6 +45,7 @@ contract MultiArbitrageExecutorTest is Test {
         }
         uint256 beforeBal = tokenA.balanceOf(address(this));
         exec.execute(pairs, fN, fD, 500, 1);
+
         uint256 afterBal = tokenA.balanceOf(address(this));
         assertGt(afterBal, beforeBal);
     }
