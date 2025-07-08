@@ -40,6 +40,10 @@ easy to chain swaps across multiple pools when seeking arbitrage opportunities.
 profitable trade size between two constant product pools.  It helps the bot
 determine how much input to supply when performing cross-exchange arbitrage.
 
+`ArbitrageExecutor` is a simple contract that uses this calculator to execute
+an arbitrage across two constant product pools. The executor transfers tokens
+between the pairs and performs the swaps, returning any profit to the caller.
+
 Run both Solidity and Go tests with:
 
  ```bash
