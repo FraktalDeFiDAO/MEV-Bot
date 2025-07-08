@@ -21,14 +21,18 @@ func TestRunInvalidURL(t *testing.T) {
 }
 
 func TestRun(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	cmd := exec.CommandContext(ctx, "anvil", "--port", "8545", "--chain-id", "31337")
-	cmd.Stdout = nil
-	cmd.Stderr = nil
-	if err := cmd.Start(); err != nil {
-		t.Fatalf("failed to start anvil: %v", err)
-	}
-	t.Cleanup(func() {
+    if _, err := exec.LookPath("anvil"); err != nil {
+        t.Skip("anvil not installed")
+    }
+
+    ctx, cancel := context.WithCancel(context.Background())
+    cmd := exec.CommandContext(ctx, "anvil", "--port", "8545", "--chain-id", "31337")
+    cmd.Stdout = nil
+    cmd.Stderr = nil
+    if err := cmd.Start(); err != nil {
+        t.Fatalf("failed to start anvil: %v", err)
+    }
+	  t.Cleanup(func() {
 		cancel()
 		cmd.Process.Kill()
 		cmd.Wait()
