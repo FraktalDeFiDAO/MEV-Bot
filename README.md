@@ -28,6 +28,11 @@ This project explores building a MEV bot targeting decentralized exchanges on Ar
 The repo now includes a `Registry` contract that stores token, exchange and pool metadata using library based diamond storage. It forms the on-chain
 configuration for the bot and demonstrates how components remain modular.
 
+`BatchExecutor` provides a simple multicall style contract that allows the bot
+to execute a series of encoded calls within a single transaction. This makes it
+easy to chain swaps across multiple pools when seeking arbitrage opportunities.
+
+
 Run both Solidity and Go tests with:
 
 ```bash
