@@ -13,10 +13,10 @@ This project explores building a MEV bot targeting decentralized exchanges on Ar
    curl -L https://foundry.paradigm.xyz | bash
    source ~/.bashrc && foundryup
    ```
-   After cloning the repo, run `forge install` to fetch the testing
-   libraries such as `forge-std`.
-   The `lib` directory is not committed to git, so you may need to run this
-   step whenever you clone a fresh repository.
+   After cloning the repo, run `forge install foundry-rs/forge-std` to fetch
+   the testing libraries such as `forge-std`.
+   The `lib` directory is excluded from version control, so you may need to
+   run this command whenever you clone a fresh repository.
 2. Run `make test` to execute both the Solidity and Go tests. Behind the scenes
    this runs `forge test` and `go test ./...`.
 3. Build the Go bot with `make build` which simply calls `go build ./cmd/bot`.
