@@ -9,6 +9,7 @@ solidity-test:
 
 go-test:
 >go mod download
+
 >go test ./...
 
 test: solidity-test go-test
