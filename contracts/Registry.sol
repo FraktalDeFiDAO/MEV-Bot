@@ -78,4 +78,5 @@ contract Registry {
     function getPools() external view returns (address[] memory) {
         return PoolLib.getPools();
     }
+
 }
