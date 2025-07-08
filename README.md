@@ -27,6 +27,7 @@ This project explores building a MEV bot targeting decentralized exchanges on Ar
   contract events using a filter query. When a `TradeExecuted` event is
   observed, the bot prints the input and profit so profitable trades are logged
   in real time.
+
 4. Start the bot with `make run` (or `make run-dev` to run using `go run`).
    The bot automatically loads environment variables from a `.env` file if
    present using `godotenv`. Set `DEBUG=1` to enable more verbose logging with

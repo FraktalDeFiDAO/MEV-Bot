@@ -28,6 +28,7 @@ contract ArbitrageExecutorTest is Test {
 
     function testExecute() public {
         vm.recordLogs();
+
         uint256 beforeBal = tokenA.balanceOf(address(this));
         exec.execute(address(pairA), address(pairB), 500, 1);
         uint256 afterBal = tokenA.balanceOf(address(this));
