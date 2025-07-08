@@ -37,6 +37,10 @@ contract Registry {
         return TokenLib.getTokens();
     }
 
+    function getTokenCount() external view returns (uint256) {
+        return TokenLib.getTokenCount();
+    }
+
     // ---- exchange management ----
     function addExchange(string calldata name, address router) external returns (uint256 id) {
         return ExchangeLib.addExchange(name, router);
@@ -77,5 +81,9 @@ contract Registry {
 
     function getPools() external view returns (address[] memory) {
         return PoolLib.getPools();
+    }
+
+    function getPoolCount() external view returns (uint256) {
+        return PoolLib.getPoolCount();
     }
 }

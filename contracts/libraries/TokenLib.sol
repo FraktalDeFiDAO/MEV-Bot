@@ -58,4 +58,8 @@ library TokenLib {
             tokens[i] = ts.tokens[i];
         }
     }
+
+    function getTokenCount() internal view returns (uint256) {
+        return tokenStorage().tokens.length;
+    }
 }

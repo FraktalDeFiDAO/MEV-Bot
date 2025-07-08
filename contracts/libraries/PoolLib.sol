@@ -53,4 +53,8 @@ library PoolLib {
             pools[i] = ps.pools[i];
         }
     }
+
+    function getPoolCount() internal view returns (uint256) {
+        return poolStorage().pools.length;
+    }
 }

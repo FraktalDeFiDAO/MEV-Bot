@@ -5,10 +5,18 @@ import (
 	"log"
 
 	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/ethutil"
+	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/watcher"
+	"github.com/ethereum/go-ethereum"
 )
 
+type runner interface{ Run(context.Context) error }
+
 // connectClient abstracts ethutil.ConnectClient for testability.
-var connectClient = ethutil.ConnectClient
+var (
+	connectClient   = ethutil.ConnectClient
+	newBlockWatcher = func(sub watcher.HeaderSubscriber) runner { return watcher.NewBlockWatcher(sub) }
+	newEventWatcher = func(sub watcher.LogSubscriber, q ethereum.FilterQuery) runner { return watcher.NewEventWatcher(sub, q) }
+)
 
 // Entry point for the MEV bot. Connects to an Arbitrum node and listens for events.
 
@@ -24,7 +32,24 @@ func run(ctx context.Context, rpcURL string) error {
 	}
 
 	log.Println("connected to arbitrum", rpcURL)
-	return nil
+
+	bw := newBlockWatcher(client)
+	ew := newEventWatcher(client, ethereum.FilterQuery{})
+
+	// run watchers until context cancellation
+	go func() {
+		if err := bw.Run(ctx); err != nil && ctx.Err() == nil {
+			log.Printf("block watcher error: %v", err)
+		}
+	}()
+	go func() {
+		if err := ew.Run(ctx); err != nil && ctx.Err() == nil {
+			log.Printf("event watcher error: %v", err)
+		}
+	}()
+
+	<-ctx.Done()
+	return ctx.Err()
 }
 
 func main() {

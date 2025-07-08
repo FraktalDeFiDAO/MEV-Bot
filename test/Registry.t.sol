@@ -64,6 +64,12 @@ contract RegistryTest is Test {
         assertEq(tokens.length, 1);
     }
 
+    function testGetTokenCount() public {
+        registry.addToken(address(1), 18);
+        registry.addToken(address(2), 6);
+        assertEq(registry.getTokenCount(), 2);
+    }
+
     function testExchangeIdsIncrement() public {
         uint256 id0 = registry.addExchange("A", address(10));
         uint256 id1 = registry.addExchange("B", address(11));
@@ -82,6 +88,12 @@ contract RegistryTest is Test {
         registry.addPool(address(1), address(2), address(3), id);
         address[] memory pools = registry.getPools();
         assertEq(pools.length, 1);
+    }
+    function testGetPoolCount() public {
+        uint256 id = registry.addExchange("UniV2", address(11));
+        registry.addPool(address(1), address(2), address(3), id);
+        registry.addPool(address(4), address(2), address(3), id);
+        assertEq(registry.getPoolCount(), 2);
     }
 
     function testSetExchangeEnabled() public {
