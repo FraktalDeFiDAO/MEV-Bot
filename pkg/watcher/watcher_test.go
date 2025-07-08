@@ -126,3 +126,4 @@ func TestEventWatcherSubscriptionError(t *testing.T) {
 		t.Fatalf("expected boom, got %v", err)
 	}
 }
+
