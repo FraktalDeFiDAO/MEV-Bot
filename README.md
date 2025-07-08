@@ -21,6 +21,7 @@ This project explores building a MEV bot targeting decentralized exchanges on Ar
 3. Run `make test` to execute both the Solidity and Go tests. Behind the scenes
    this runs `forge test` and `go test ./...`.
 4. Build the Go bot with `make build` which simply calls `go build ./cmd/bot`.
+
    Utility packages under `pkg/` keep the bot logic modular. For example,
   `ethutil.ConnectClient` provides a simple wrapper for creating Ethereum RPC
   clients. The `watcher` package offers utilities for observing chain activity.
@@ -36,6 +37,7 @@ This project explores building a MEV bot targeting decentralized exchanges on Ar
    `Registry` contract with `forge create`.  Pass `CONTRACT=path:Name` to
    deploy a different contract.  `RPC_URL` and `PRIVATE_KEY` must be set in
    the environment.
+
 
 The repo now includes a `Registry` contract that stores token, exchange and pool metadata using library based diamond storage. It forms the on-chain
 configuration for the bot and demonstrates how components remain modular.
