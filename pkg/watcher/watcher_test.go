@@ -1,15 +1,15 @@
 package watcher
 
 import (
-        "context"
-        "errors"
-        "math/big"
-        "testing"
-        "time"
+  "context"
+  "errors"
+  "math/big"
+  "testing"
+  "time"
 
-        "github.com/ethereum/go-ethereum"
-        "github.com/ethereum/go-ethereum/common"
-        "github.com/ethereum/go-ethereum/core/types"
+  "github.com/ethereum/go-ethereum"
+  "github.com/ethereum/go-ethereum/common"
+  "github.com/ethereum/go-ethereum/core/types"
 )
 
 type errSubscriber struct{ err error }
@@ -52,6 +52,7 @@ func (goodLogSubscriber) SubscribeFilterLogs(ctx context.Context, q ethereum.Fil
         }()
         return sub, nil
 }
+
 
 func TestBlockWatcherSubscribeError(t *testing.T) {
 	bw := NewBlockWatcher(errSubscriber{err: errors.New("boom")})
