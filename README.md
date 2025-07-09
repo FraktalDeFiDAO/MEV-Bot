@@ -48,7 +48,12 @@ This project explores building a MEV bot targeting decentralized exchanges on Ar
    the environment.
 7. Generate Go contract bindings with `make generate-bindings`. This runs
    `scripts/generate_bindings.sh` which uses `abigen` to create Go packages
-   under `cmd/bot/bindings`.
+   under `cmd/bot/bindings`. If `abigen` isn't installed, you can add it to
+   your `PATH` with:
+
+   ```bash
+   go install github.com/ethereum/go-ethereum/cmd/abigen@latest
+
 
 The repo now includes a `Registry` contract that stores token, exchange and pool metadata using library based diamond storage. It forms the on-chain
 configuration for the bot and demonstrates how components remain modular.

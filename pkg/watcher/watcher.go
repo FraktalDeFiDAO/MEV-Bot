@@ -49,7 +49,7 @@ func (bw *BlockWatcher) Run(ctx context.Context) error {
 			if bw.verbose {
 				log.Printf("new block: %d", h.Number.Uint64())
 			}
-    }
+		}
 	}
 }
 
