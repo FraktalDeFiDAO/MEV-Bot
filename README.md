@@ -41,11 +41,11 @@ This project explores building a MEV bot targeting decentralized exchanges on Ar
    `"addr1,addr2;addr3,addr4"`.
    Set `FACTORIES` to a comma separated list of factory addresses to
    automatically capture `PairCreated` and `PoolCreated` events and grow the
-   set of pools scanned for opportunities. When `REGISTRY_ADDRESS` and
-   `PRIVATE_KEY` are also configured, each discovered pool and its tokens are
-   registered on-chain automatically. The bot waits for each registration
-   transaction to be mined so the local cache only stores confirmed entries.
-
+   set of pools scanned for opportunities. When both `REGISTRY_ADDRESS` and
+   `PRIVATE_KEY` are configured, each discovered pool and its tokens are
+   registered on-chain automatically. If only one of these variables is set the
+   registry client is disabled. The bot waits for each registration transaction
+   to be mined so the local cache only stores confirmed entries.
 6. Deploy contracts using `make deploy`. By default this deploys the
    `Registry` contract with `forge create`.  Pass `CONTRACT=path:Name` to
    deploy a different contract.  `RPC_URL` and `PRIVATE_KEY` must be set in

@@ -117,6 +117,8 @@ func run(ctx context.Context, rpcURL, regAddr, keyHex string) error {
 		} else {
 			log.Printf("key error: %v", err)
 		}
+	} else if regAddr != "" || keyHex != "" {
+		log.Println("registry disabled: set both REGISTRY_ADDRESS and PRIVATE_KEY")
 	}
 
 	if regClient != nil {
@@ -326,8 +328,7 @@ func recordPool(pool, token0, token1 common.Address) {
 			log.Printf("token0 tx failed: %v", err)
 			return
 		}
-
-		log.Printf("registry add token %s tx=%s", token0.Hex(), tx.Hash().Hex())
+    log.Printf("registry add token %s tx=%s", token0.Hex(), tx.Hash().Hex())
 		knownTokens[token0] = struct{}{}
 	}
 	if _, ok := knownTokens[token1]; !ok {
@@ -340,7 +341,6 @@ func recordPool(pool, token0, token1 common.Address) {
 			log.Printf("token1 tx failed: %v", err)
 			return
 		}
-
 		log.Printf("registry add token %s tx=%s", token1.Hex(), tx.Hash().Hex())
 		knownTokens[token1] = struct{}{}
 	}
@@ -354,7 +354,6 @@ func recordPool(pool, token0, token1 common.Address) {
 			log.Printf("pool tx failed: %v", err)
 			return
 		}
-
 		log.Printf("registry add pool %s tx=%s", pool.Hex(), tx.Hash().Hex())
 		knownPools[pool] = struct{}{}
 	}
@@ -387,7 +386,6 @@ func recordToken(token common.Address) {
 			log.Printf("token tx failed: %v", err)
 			return
 		}
-
 		log.Printf("registry add token %s tx=%s", token.Hex(), tx.Hash().Hex())
 		knownTokens[token] = struct{}{}
 	}
