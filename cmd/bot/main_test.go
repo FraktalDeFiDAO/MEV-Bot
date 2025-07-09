@@ -181,6 +181,10 @@ func (s *stubRegistry) AddToken(t common.Address, d uint8) (*types.Transaction, 
 	return tx, nil
 }
 
+func (s *stubRegistry) WaitMined(ctx context.Context, tx *types.Transaction) (*types.Receipt, error) {
+	return &types.Receipt{Status: types.ReceiptStatusSuccessful}, nil
+}
+
 func (s *stubRegistry) Tokens(context.Context) ([]common.Address, error) {
 	return s.tokens, nil
 }
