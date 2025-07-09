@@ -45,6 +45,7 @@ This project explores building a MEV bot targeting decentralized exchanges on Ar
    `PRIVATE_KEY` are also configured, each discovered pool and its tokens are
    registered on-chain automatically. The bot waits for each registration
    transaction to be mined so the local cache only stores confirmed entries.
+
 6. Deploy contracts using `make deploy`. By default this deploys the
    `Registry` contract with `forge create`.  Pass `CONTRACT=path:Name` to
    deploy a different contract.  `RPC_URL` and `PRIVATE_KEY` must be set in
