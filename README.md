@@ -30,6 +30,7 @@ This project explores building a MEV bot targeting decentralized exchanges on Ar
   profitable trades are logged in real time. `Sync` events are decoded to
   log pool price updates, allowing the bot to track market movements without
   processing every log on the chain.
+
 5. Start the bot with `make run` (or `make run-dev` to run using `go run`).
    The bot automatically loads environment variables from a `.env` file if
    present using `godotenv`. Set `DEBUG=1` to enable more verbose logging with
