@@ -12,6 +12,7 @@ import (
 	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/arb"
 	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/ethutil"
 	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/market"
+	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/registry"
 	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/watcher"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -41,7 +42,8 @@ var (
 		return watcher.NewEventWatcher(sub, q, pairLogHandler)
 	}
 	arbMon      *arb.Monitor
-	marketStore = market.New()
+	marketStore *market.Persistent
+	regClient   *registry.Client
 )
 
 func init() {
@@ -73,8 +75,8 @@ func init() {
 
 // Entry point for the MEV bot. Connects to an Arbitrum node and listens for events.
 
-func run(ctx context.Context, rpcURL string) error {
-	client, err := connectClient(ctx, rpcURL)
+func run(ctx context.Context, rpcURL, regAddr, keyHex string) error {
+  client, err := connectClient(ctx, rpcURL)
 	if err != nil {
 		return err
 	}
@@ -85,6 +87,20 @@ func run(ctx context.Context, rpcURL string) error {
 	}
 
 	log.Println("connected to arbitrum", rpcURL)
+	if regAddr != "" && keyHex != "" {
+		key, err := crypto.HexToECDSA(strings.TrimPrefix(keyHex, "0x"))
+		if err == nil {
+			rc, err := registry.New(ctx, common.HexToAddress(regAddr), client, key)
+			if err == nil {
+				regClient = rc
+			} else {
+				log.Printf("registry init error: %v", err)
+			}
+		} else {
+			log.Printf("key error: %v", err)
+		}
+	}
+
 
 	bw := newBlockWatcher(client)
 	// listen for TradeExecuted and Sync events
@@ -140,6 +156,7 @@ func run(ctx context.Context, rpcURL string) error {
 			}
 		}()
 	}
+
 	<-ctx.Done()
 	return ctx.Err()
 }
@@ -201,6 +218,17 @@ func pairLogHandler(l types.Log) {
 				marketStore.AddToken(ev.Token0)
 				marketStore.AddToken(ev.Token1)
 			}
+			if regClient != nil {
+				if _, err := regClient.AddToken(ev.Token0, 18); err != nil {
+					log.Printf("registry token0 error: %v", err)
+				}
+				if _, err := regClient.AddToken(ev.Token1, 18); err != nil {
+					log.Printf("registry token1 error: %v", err)
+				}
+				if _, err := regClient.AddPool(ev.Pair, ev.Token0, ev.Token1, 0); err != nil {
+					log.Printf("registry pool error: %v", err)
+				}
+			}
 		} else {
 			log.Printf("pair decode error: %v", err)
 		}
@@ -219,6 +247,17 @@ func pairLogHandler(l types.Log) {
 				marketStore.AddToken(ev.Token0)
 				marketStore.AddToken(ev.Token1)
 			}
+			if regClient != nil {
+				if _, err := regClient.AddToken(ev.Token0, 18); err != nil {
+					log.Printf("registry token0 error: %v", err)
+				}
+				if _, err := regClient.AddToken(ev.Token1, 18); err != nil {
+					log.Printf("registry token1 error: %v", err)
+				}
+				if _, err := regClient.AddPool(ev.Pool, ev.Token0, ev.Token1, 0); err != nil {
+					log.Printf("registry pool error: %v", err)
+				}
+			}
 		} else {
 			log.Printf("pool decode error: %v", err)
 		}
@@ -236,12 +275,20 @@ func main() {
 		log.SetFlags(log.LstdFlags)
 	}
 
+	cachePath := os.Getenv("MARKET_CACHE")
+	if cachePath == "" {
+		cachePath = "market.json"
+	}
+	marketStore = market.LoadFromFile(cachePath)
+
 	rpcURL := os.Getenv("RPC_URL")
 	if rpcURL == "" {
 		rpcURL = "https://arb1.arbitrum.io/rpc"
 	}
+	regAddr := os.Getenv("REGISTRY_ADDRESS")
+	priv := os.Getenv("PRIVATE_KEY")
 
-	if err := run(context.Background(), rpcURL); err != nil {
+	if err := run(context.Background(), rpcURL, regAddr, priv); err != nil {
 		log.Fatalf("failed to connect to arbitrum rpc: %v", err)
 	}
 }

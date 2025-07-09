@@ -24,7 +24,8 @@ This project explores building a MEV bot targeting decentralized exchanges on Ar
    Utility packages under `pkg/` keep the bot logic modular. For example,
   `ethutil.ConnectClient` provides a simple wrapper for creating Ethereum RPC
   clients. The `watcher` package offers utilities for observing chain activity.
-  `BlockWatcher` logs new block headers, while `EventWatcher` subscribes only to
+  `BlockWatcher` logs new block headers only when `DEBUG=1` is set to reduce
+  noise, while `EventWatcher` subscribes only to
   profitable trade events and Uniswap V2 `Sync` events. When a
   `TradeExecuted` event is observed the bot prints the input and profit so
   profitable trades are logged in real time. `Sync` events are decoded to
@@ -102,8 +103,10 @@ Install dependencies with `npm install` and run `npm run dev` to launch the UI.
 
 A sample `.env.sample` file is provided containing environment variables used by
 the Go bot, such as `RPC_URL` and `PRIVATE_KEY`. Copy it to `.env` and adjust the
-values as needed. `RPC_URL` defaults to the public Arbitrum RPC endpoint if left
-unset.
+values as needed.  `RPC_URL` defaults to the public Arbitrum RPC endpoint if left
+unset. `MARKET_CACHE` controls where discovered pools are cached locally and
+`REGISTRY_ADDRESS` specifies an on-chain registry contract to persist newly
+discovered pools and tokens.
 
 ## Docker
 

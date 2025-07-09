@@ -3,6 +3,7 @@ package watcher
 import (
 	"context"
 	"log"
+	"os"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -15,12 +16,13 @@ type HeaderSubscriber interface {
 
 // BlockWatcher listens for new block headers using an Ethereum client.
 type BlockWatcher struct {
-	sub HeaderSubscriber
+	sub     HeaderSubscriber
+	verbose bool
 }
 
 // NewBlockWatcher creates a watcher using the given subscriber.
 func NewBlockWatcher(sub HeaderSubscriber) *BlockWatcher {
-	return &BlockWatcher{sub: sub}
+	return &BlockWatcher{sub: sub, verbose: os.Getenv("DEBUG") != ""}
 }
 
 // Run subscribes to new block headers and logs them until the context is done.
@@ -44,8 +46,10 @@ func (bw *BlockWatcher) Run(ctx context.Context) error {
 				return err
 			}
 		case h := <-headers:
-			log.Printf("new block: %d", h.Number.Uint64())
-		}
+			if bw.verbose {
+				log.Printf("new block: %d", h.Number.Uint64())
+			}
+    }
 	}
 }
 

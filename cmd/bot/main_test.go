@@ -22,7 +22,7 @@ type runnerFunc func(context.Context) error
 func (f runnerFunc) Run(ctx context.Context) error { return f(ctx) }
 
 func TestRunInvalidURL(t *testing.T) {
-	if err := run(context.Background(), "http://127.0.0.1:0"); err == nil {
+	if err := run(context.Background(), "http://127.0.0.1:0", "", ""); err == nil {
 		t.Fatal("expected error from invalid RPC URL")
 	}
 }
@@ -80,7 +80,7 @@ func TestRun(t *testing.T) {
 		cancel()
 	}()
 
-	if err := run(ctx, "http://127.0.0.1:8545"); err != context.Canceled {
+	if err := run(ctx, "http://127.0.0.1:8545", "", ""); err != context.Canceled {
 		t.Fatalf("run failed: %v", err)
 	}
 	if !bwCalled || !ewCalled {
