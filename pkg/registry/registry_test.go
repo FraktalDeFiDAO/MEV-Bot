@@ -21,9 +21,7 @@ func (s *stubContract) Call(opts *bind.CallOpts, result *[]interface{}, method s
 	s.params = params
 	switch v := s.callRes.(type) {
 	case []common.Address:
-		for _, a := range v {
-			*result = append(*result, a)
-		}
+		*result = append(*result, v)
 	case struct {
 		Token0     common.Address
 		Token1     common.Address
@@ -33,7 +31,6 @@ func (s *stubContract) Call(opts *bind.CallOpts, result *[]interface{}, method s
 		*result = append(*result, v.Token0, v.Token1, v.ExchangeID, v.Enabled)
 	}
 	return nil
-
 }
 
 func (s *stubContract) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {

@@ -397,7 +397,6 @@ func startServer(addr string) {
 	}()
 }
 
-
 func main() {
 	// load environment variables from .env if present
 	_ = godotenv.Load()

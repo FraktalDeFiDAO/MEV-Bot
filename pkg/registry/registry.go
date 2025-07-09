@@ -74,11 +74,10 @@ func (r *Client) Tokens(ctx context.Context) ([]common.Address, error) {
 	if err := r.c.Call(&bind.CallOpts{Context: ctx}, &raw, "getTokens"); err != nil {
 		return nil, err
 	}
-	res := make([]common.Address, len(raw))
-	for i, v := range raw {
-		res[i] = v.(common.Address)
+	if len(raw) == 0 {
+		return nil, nil
 	}
-	return res, nil
+	return raw[0].([]common.Address), nil
 }
 
 // Pools returns the list of registered pool addresses.
@@ -87,11 +86,10 @@ func (r *Client) Pools(ctx context.Context) ([]common.Address, error) {
 	if err := r.c.Call(&bind.CallOpts{Context: ctx}, &raw, "getPools"); err != nil {
 		return nil, err
 	}
-	res := make([]common.Address, len(raw))
-	for i, v := range raw {
-		res[i] = v.(common.Address)
+	if len(raw) == 0 {
+		return nil, nil
 	}
-	return res, nil
+	return raw[0].([]common.Address), nil
 }
 
 // PoolInfo returns metadata for a given pool.

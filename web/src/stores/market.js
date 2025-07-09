@@ -15,5 +15,5 @@ export const useMarketStore = defineStore('market', {
       await fetch('/pools', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ address, token0, token1 }) })
       this.refresh()
     },
-  }r
+  }
 })
