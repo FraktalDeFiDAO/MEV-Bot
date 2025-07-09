@@ -187,17 +187,49 @@ func syncRegistry() {
 	if regClient == nil || marketStore == nil {
 		return
 	}
+
+	ctx := context.Background()
+
+	onchainTokens, err := regClient.Tokens(ctx)
+	if err != nil {
+		log.Printf("registry token query error: %v", err)
+	}
+	tokenSet := make(map[common.Address]struct{})
+	for _, t := range onchainTokens {
+		tokenSet[t] = struct{}{}
+	}
+
 	for _, t := range marketStore.ListTokens() {
-		if _, err := regClient.AddToken(t, 18); err != nil {
+		if _, ok := tokenSet[t]; ok {
+			continue
+		}
+		if tx, err := regClient.AddToken(t, 18); err != nil {
 			log.Printf("registry sync token error: %v", err)
+		} else {
+			log.Printf("registry add token %s tx=%s", t.Hex(), tx.Hash().Hex())
 		}
 	}
+
+	onchainPools, err := regClient.Pools(ctx)
+	if err != nil {
+		log.Printf("registry pool query error: %v", err)
+	}
+	poolSet := make(map[common.Address]struct{})
+	for _, p := range onchainPools {
+		poolSet[p] = struct{}{}
+	}
+
 	for _, p := range marketStore.ListPools() {
 		if p.Token0 == (common.Address{}) || p.Token1 == (common.Address{}) {
 			continue
 		}
-		if _, err := regClient.AddPool(p.Address, p.Token0, p.Token1, 0); err != nil {
+		if _, ok := poolSet[p.Address]; ok {
+			continue
+		}
+		if tx, err := regClient.AddPool(p.Address, p.Token0, p.Token1, 0); err != nil {
 			log.Printf("registry sync pool error: %v", err)
+		} else {
+			log.Printf("registry add pool %s tx=%s", p.Address.Hex(), tx.Hash().Hex())
 		}
 	}
 }
@@ -286,14 +318,20 @@ func pairLogHandler(l types.Log) {
 				marketStore.AddToken(ev.Token1)
 			}
 			if regClient != nil {
-				if _, err := regClient.AddToken(ev.Token0, 18); err != nil {
+				if tx, err := regClient.AddToken(ev.Token0, 18); err != nil {
 					log.Printf("registry token0 error: %v", err)
+				} else {
+					log.Printf("registry add token %s tx=%s", ev.Token0.Hex(), tx.Hash().Hex())
 				}
-				if _, err := regClient.AddToken(ev.Token1, 18); err != nil {
+				if tx, err := regClient.AddToken(ev.Token1, 18); err != nil {
 					log.Printf("registry token1 error: %v", err)
+				} else {
+					log.Printf("registry add token %s tx=%s", ev.Token1.Hex(), tx.Hash().Hex())
 				}
-				if _, err := regClient.AddPool(ev.Pair, ev.Token0, ev.Token1, 0); err != nil {
+				if tx, err := regClient.AddPool(ev.Pair, ev.Token0, ev.Token1, 0); err != nil {
 					log.Printf("registry pool error: %v", err)
+				} else {
+					log.Printf("registry add pool %s tx=%s", ev.Pair.Hex(), tx.Hash().Hex())
 				}
 			}
 		} else {
@@ -315,14 +353,20 @@ func pairLogHandler(l types.Log) {
 				marketStore.AddToken(ev.Token1)
 			}
 			if regClient != nil {
-				if _, err := regClient.AddToken(ev.Token0, 18); err != nil {
+				if tx, err := regClient.AddToken(ev.Token0, 18); err != nil {
 					log.Printf("registry token0 error: %v", err)
+				} else {
+					log.Printf("registry add token %s tx=%s", ev.Token0.Hex(), tx.Hash().Hex())
 				}
-				if _, err := regClient.AddToken(ev.Token1, 18); err != nil {
+				if tx, err := regClient.AddToken(ev.Token1, 18); err != nil {
 					log.Printf("registry token1 error: %v", err)
+				} else {
+					log.Printf("registry add token %s tx=%s", ev.Token1.Hex(), tx.Hash().Hex())
 				}
-				if _, err := regClient.AddPool(ev.Pool, ev.Token0, ev.Token1, 0); err != nil {
+				if tx, err := regClient.AddPool(ev.Pool, ev.Token0, ev.Token1, 0); err != nil {
 					log.Printf("registry pool error: %v", err)
+				} else {
+					log.Printf("registry add pool %s tx=%s", ev.Pool.Hex(), tx.Hash().Hex())
 				}
 			}
 		} else {

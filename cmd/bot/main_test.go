@@ -148,11 +148,13 @@ type stubRegistry struct {
 
 func (s *stubRegistry) AddPool(a, b, c common.Address, id uint64) (*types.Transaction, error) {
 	s.pools = append(s.pools, [3]common.Address{a, b, c})
-	return new(types.Transaction), nil
+	tx := types.NewTx(&types.LegacyTx{Nonce: 0})
+	return tx, nil
 }
 func (s *stubRegistry) AddToken(t common.Address, d uint8) (*types.Transaction, error) {
 	s.tokens = append(s.tokens, t)
-	return new(types.Transaction), nil
+	tx := types.NewTx(&types.LegacyTx{Nonce: 0})
+	return tx, nil
 }
 
 func (s *stubRegistry) Tokens(context.Context) ([]common.Address, error) {
