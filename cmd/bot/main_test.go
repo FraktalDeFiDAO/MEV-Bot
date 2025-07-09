@@ -140,9 +140,13 @@ func TestPairLogHandler(t *testing.T) {
 	}
 }
 
-type stubRegistry struct{ tokens []common.Address }
+type stubRegistry struct {
+	tokens []common.Address
+	pools  [][3]common.Address
+}
 
 func (s *stubRegistry) AddPool(a, b, c common.Address, id uint64) (*types.Transaction, error) {
+	s.pools = append(s.pools, [3]common.Address{a, b, c})
 	return new(types.Transaction), nil
 }
 func (s *stubRegistry) AddToken(t common.Address, d uint8) (*types.Transaction, error) {
@@ -154,10 +158,15 @@ func TestSyncRegistry(t *testing.T) {
 	marketStore = &market.Persistent{Market: market.New()}
 	addr := common.HexToAddress("0x123")
 	marketStore.AddToken(addr)
+	marketStore.AddToken(common.HexToAddress("0x456"))
+	marketStore.AddPool(common.HexToAddress("0x1"), addr, common.HexToAddress("0x456"))
 	stub := &stubRegistry{}
 	regClient = stub
 	syncRegistry()
-	if len(stub.tokens) != 1 || stub.tokens[0] != addr {
-		t.Fatalf("registry not updated: %v", stub.tokens)
+	if len(stub.tokens) != 2 {
+		t.Fatalf("registry tokens not updated: %v", stub.tokens)
+	}
+	if len(stub.pools) != 1 {
+		t.Fatalf("registry pools not updated: %v", stub.pools)
 	}
 }

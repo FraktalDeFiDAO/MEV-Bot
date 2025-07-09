@@ -54,8 +54,6 @@ This project explores building a MEV bot targeting decentralized exchanges on Ar
    ```bash
    go install github.com/ethereum/go-ethereum/cmd/abigen@latest
 
-
-
 The repo now includes a `Registry` contract that stores token, exchange and pool metadata using library based diamond storage. It forms the on-chain
 configuration for the bot and demonstrates how components remain modular.
 The registry exposes helper getters like `getTokenCount`, `getExchangeCount` and
@@ -113,7 +111,8 @@ the Go bot, such as `RPC_URL` and `PRIVATE_KEY`. Copy it to `.env` and adjust th
 values as needed.  `RPC_URL` defaults to the public Arbitrum RPC endpoint if left
 unset. `MARKET_CACHE` controls where discovered pools are cached locally and
 `REGISTRY_ADDRESS` specifies an on-chain registry contract to persist newly
-discovered pools and tokens.
+discovered pools and tokens. Cached pools include their token addresses so the
+bot can resync them to the registry on startup.
 
 ## Docker
 

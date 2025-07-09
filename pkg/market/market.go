@@ -8,21 +8,38 @@ import (
 
 // Market stores discovered pool addresses.
 // Market stores discovered pool and token addresses.
+// PoolEntry holds metadata for a discovered pool.
+type PoolEntry struct {
+	Address common.Address
+	Token0  common.Address
+	Token1  common.Address
+}
+
+// Market stores discovered pools and tokens.
 type Market struct {
 	mu     sync.RWMutex
-	pools  map[common.Address]struct{}
+	pools  map[common.Address]PoolEntry
 	tokens map[common.Address]struct{}
 }
 
 // New creates an empty Market.
 func New() *Market {
-	return &Market{pools: make(map[common.Address]struct{}), tokens: make(map[common.Address]struct{})}
+	return &Market{pools: make(map[common.Address]PoolEntry), tokens: make(map[common.Address]struct{})}
 }
 
-// Add records a new pool address.
+// Add records a new pool address without token metadata.
 func (m *Market) Add(addr common.Address) {
 	m.mu.Lock()
-	m.pools[addr] = struct{}{}
+	if _, ok := m.pools[addr]; !ok {
+		m.pools[addr] = PoolEntry{Address: addr}
+	}
+	m.mu.Unlock()
+}
+
+// AddPool records a pool along with its tokens.
+func (m *Market) AddPool(addr, token0, token1 common.Address) {
+	m.mu.Lock()
+	m.pools[addr] = PoolEntry{Address: addr, Token0: token0, Token1: token1}
 	m.mu.Unlock()
 }
 
@@ -49,12 +66,31 @@ func (m *Market) HasToken(addr common.Address) bool {
 	return ok
 }
 
+// GetPool returns the tokens for a given pool.
+func (m *Market) GetPool(addr common.Address) (PoolEntry, bool) {
+	m.mu.RLock()
+	p, ok := m.pools[addr]
+	m.mu.RUnlock()
+	return p, ok
+}
+
 // List returns all known pool addresses.
 func (m *Market) List() []common.Address {
 	m.mu.RLock()
 	res := make([]common.Address, 0, len(m.pools))
 	for a := range m.pools {
 		res = append(res, a)
+	}
+	m.mu.RUnlock()
+	return res
+}
+
+// ListPools returns all known pools with their tokens.
+func (m *Market) ListPools() []PoolEntry {
+	m.mu.RLock()
+	res := make([]PoolEntry, 0, len(m.pools))
+	for _, p := range m.pools {
+		res = append(res, p)
 	}
 	m.mu.RUnlock()
 	return res

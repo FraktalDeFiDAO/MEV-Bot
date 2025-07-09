@@ -182,6 +182,14 @@ func syncRegistry() {
 			log.Printf("registry sync token error: %v", err)
 		}
 	}
+	for _, p := range marketStore.ListPools() {
+		if p.Token0 == (common.Address{}) || p.Token1 == (common.Address{}) {
+			continue
+		}
+		if _, err := regClient.AddPool(p.Address, p.Token0, p.Token1, 0); err != nil {
+			log.Printf("registry sync pool error: %v", err)
+		}
+	}
 }
 
 // profitLogHandler decodes TradeExecuted events and prints the profit.
@@ -237,7 +245,7 @@ func pairLogHandler(l types.Log) {
 		if err := pairABI.UnpackIntoInterface(&ev, "PairCreated", l.Data); err == nil {
 			log.Printf("pair created %s", ev.Pair.Hex())
 			if marketStore != nil {
-				marketStore.Add(ev.Pair)
+				marketStore.AddPool(ev.Pair, ev.Token0, ev.Token1)
 				marketStore.AddToken(ev.Token0)
 				marketStore.AddToken(ev.Token1)
 			}
@@ -266,7 +274,7 @@ func pairLogHandler(l types.Log) {
 		if err := poolABI.UnpackIntoInterface(&ev, "PoolCreated", l.Data); err == nil {
 			log.Printf("pool created %s", ev.Pool.Hex())
 			if marketStore != nil {
-				marketStore.Add(ev.Pool)
+				marketStore.AddPool(ev.Pool, ev.Token0, ev.Token1)
 				marketStore.AddToken(ev.Token0)
 				marketStore.AddToken(ev.Token1)
 			}
