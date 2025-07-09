@@ -41,19 +41,29 @@ This project explores building a MEV bot targeting decentralized exchanges on Ar
    `"addr1,addr2;addr3,addr4"`.
    Set `FACTORIES` to a comma separated list of factory addresses to
    automatically capture `PairCreated` and `PoolCreated` events and grow the
-   set of pools scanned for opportunities.
+   set of pools scanned for opportunities. When both `REGISTRY_ADDRESS` and
+   `PRIVATE_KEY` are configured, each discovered pool and its tokens are
+   registered on-chain automatically. If only one of these variables is set the
+   registry client is disabled. The bot waits for each registration transaction
+   to be mined so the local cache only stores confirmed entries.
 6. Deploy contracts using `make deploy`. By default this deploys the
    `Registry` contract with `forge create`.  Pass `CONTRACT=path:Name` to
    deploy a different contract.  `RPC_URL` and `PRIVATE_KEY` must be set in
    the environment.
-7. Generate Go contract bindings with `make generate-bindings`. This runs
-   `scripts/generate_bindings.sh` which uses `abigen` to create Go packages
-   under `cmd/bot/bindings`. If `abigen` isn't installed, you can add it to
-   your `PATH` with:
+7. Go contract bindings are generated automatically when running `make build`
+   (and thus `make run`). The `generate-bindings` target can still be called
+   manually if desired. It runs `scripts/generate_bindings.sh` which uses
+   `abigen` to create Go packages under `cmd/bot/bindings`. If `abigen` isn't
+   installed the script simply skips generation. To install it run:
 
    ```bash
-   go install github.com/ethereum/go-ethereum/cmd/abigen@latest
-   ```
+  go install github.com/ethereum/go-ethereum/cmd/abigen@latest
+  ```
+
+8. Interact with the on-chain registry using `make registry-cli`. Pass
+   commands such as `ARGS="tokens"` or `ARGS="add-token 0x..."`. The tool
+   uses the same `RPC_URL`, `REGISTRY_ADDRESS`, and `PRIVATE_KEY`
+   environment variables as the bot.
 
 The repo now includes a `Registry` contract that stores token, exchange and pool metadata using library based diamond storage. It forms the on-chain
 configuration for the bot and demonstrates how components remain modular.
@@ -116,9 +126,10 @@ A sample `.env.sample` file is provided containing environment variables used by
 the Go bot, such as `RPC_URL` and `PRIVATE_KEY`. Copy it to `.env` and adjust the
 values as needed.  `RPC_URL` defaults to the public Arbitrum RPC endpoint if left
 unset. `MARKET_CACHE` controls where discovered pools are cached locally and
-`REGISTRY_ADDRESS` specifies an on-chain registry contract to persist newly
-discovered pools and tokens. Cached pools include their token addresses so the
-bot can resync them to the registry on startup. When syncing the registry,
+should point to a SQLite database file such as `market.db`. `REGISTRY_ADDRESS`
+specifies an on-chain registry contract to persist newly discovered pools and
+tokens. Cached pools include their token addresses so the bot can resync them to
+the registry on startup. When syncing the registry,
 the bot queries existing entries to avoid duplicate transactions and logs the
 hash of each successful `addToken` or `addPool` call. Runtime state tracks which
 tokens and pools are already registered so newly discovered addresses are only
