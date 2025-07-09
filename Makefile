@@ -26,7 +26,8 @@ run-dev:
 >go run ./cmd/bot
 
 deploy:
->forge create $(CONTRACT) --rpc-url $(RPC_URL) --private-key $(PRIVATE_KEY)
+>forge create $(CONTRACT) --rpc-url $(RPC_URL) \
+	--private-key $(PRIVATE_KEY) --broadcast
 
 clean:
 >rm -f bot
