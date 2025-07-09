@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/market"
 	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/watcher"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
@@ -136,5 +137,27 @@ func TestPairLogHandler(t *testing.T) {
 	pairLogHandler(types.Log{Topics: []common.Hash{poolEventID}, Data: poolData})
 	if !strings.Contains(buf.String(), "pool created") {
 		t.Fatalf("pool not logged: %q", buf.String())
+	}
+}
+
+type stubRegistry struct{ tokens []common.Address }
+
+func (s *stubRegistry) AddPool(a, b, c common.Address, id uint64) (*types.Transaction, error) {
+	return new(types.Transaction), nil
+}
+func (s *stubRegistry) AddToken(t common.Address, d uint8) (*types.Transaction, error) {
+	s.tokens = append(s.tokens, t)
+	return new(types.Transaction), nil
+}
+
+func TestSyncRegistry(t *testing.T) {
+	marketStore = &market.Persistent{Market: market.New()}
+	addr := common.HexToAddress("0x123")
+	marketStore.AddToken(addr)
+	stub := &stubRegistry{}
+	regClient = stub
+	syncRegistry()
+	if len(stub.tokens) != 1 || stub.tokens[0] != addr {
+		t.Fatalf("registry not updated: %v", stub.tokens)
 	}
 }

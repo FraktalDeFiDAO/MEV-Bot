@@ -1,5 +1,5 @@
 .RECIPEPREFIX := >
-.PHONY: test solidity-test go-test build docker run run-dev deploy clean generate-bindings
+.PHONY: test solidity-test go-test build docker run run-dev deploy clean generate-bindings web-install web-build web-dev
 
 CONTRACT ?= contracts/Registry.sol:Registry
 
@@ -34,3 +34,12 @@ generate-bindings:
 clean:
 >rm -f bot
 >rm -rf out cache
+
+web-install:
+>npm install --prefix web
+
+web-build:
+>npm run build --prefix web
+
+web-dev:
+>npm run dev --prefix web

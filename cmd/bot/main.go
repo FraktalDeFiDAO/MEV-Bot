@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"log"
 	"math/big"
 	"os"
@@ -19,13 +20,22 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 type runner interface{ Run(context.Context) error }
 
+type registryClient interface {
+	AddPool(common.Address, common.Address, common.Address, uint64) (*types.Transaction, error)
+	AddToken(common.Address, uint8) (*types.Transaction, error)
+}
+
 // connectClient abstracts ethutil.ConnectClient for testability.
 var (
-	connectClient   = ethutil.ConnectClient
+	connectClient = ethutil.ConnectClient
+	newRegistry   = func(ctx context.Context, addr common.Address, rpc *ethclient.Client, key *ecdsa.PrivateKey) (registryClient, error) {
+		return registry.New(ctx, addr, rpc, key)
+	}
 	newBlockWatcher = func(sub watcher.HeaderSubscriber) runner { return watcher.NewBlockWatcher(sub) }
 	tradeABI        abi.ABI
 	tradeEventID    common.Hash
@@ -43,7 +53,7 @@ var (
 	}
 	arbMon      *arb.Monitor
 	marketStore *market.Persistent
-	regClient   *registry.Client
+	regClient   registryClient
 )
 
 func init() {
@@ -90,7 +100,7 @@ func run(ctx context.Context, rpcURL, regAddr, keyHex string) error {
 	if regAddr != "" && keyHex != "" {
 		key, err := crypto.HexToECDSA(strings.TrimPrefix(keyHex, "0x"))
 		if err == nil {
-			rc, err := registry.New(ctx, common.HexToAddress(regAddr), client, key)
+			rc, err := newRegistry(ctx, common.HexToAddress(regAddr), client, key)
 			if err == nil {
 				regClient = rc
 			} else {
@@ -100,6 +110,8 @@ func run(ctx context.Context, rpcURL, regAddr, keyHex string) error {
 			log.Printf("key error: %v", err)
 		}
 	}
+
+	syncRegistry()
 
 	bw := newBlockWatcher(client)
 	// listen for TradeExecuted and Sync events
@@ -158,6 +170,18 @@ func run(ctx context.Context, rpcURL, regAddr, keyHex string) error {
 
 	<-ctx.Done()
 	return ctx.Err()
+}
+
+// syncRegistry registers any tokens loaded from disk with the on-chain registry.
+func syncRegistry() {
+	if regClient == nil || marketStore == nil {
+		return
+	}
+	for _, t := range marketStore.ListTokens() {
+		if _, err := regClient.AddToken(t, 18); err != nil {
+			log.Printf("registry sync token error: %v", err)
+		}
+	}
 }
 
 // profitLogHandler decodes TradeExecuted events and prints the profit.
