@@ -140,7 +140,6 @@ func run(ctx context.Context, rpcURL string) error {
 			}
 		}()
 	}
-
 	<-ctx.Done()
 	return ctx.Err()
 }

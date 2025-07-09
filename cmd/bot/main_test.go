@@ -138,3 +138,4 @@ func TestPairLogHandler(t *testing.T) {
 		t.Fatalf("pool not logged: %q", buf.String())
 	}
 }
+
