@@ -50,7 +50,11 @@ github.com/ethereum/c-kzg-4844/bindings/go
 # github.com/ethereum/go-ethereum v1.13.11
 ## explicit; go 1.20
 github.com/ethereum/go-ethereum
+github.com/ethereum/go-ethereum/accounts
 github.com/ethereum/go-ethereum/accounts/abi
+github.com/ethereum/go-ethereum/accounts/abi/bind
+github.com/ethereum/go-ethereum/accounts/external
+github.com/ethereum/go-ethereum/accounts/keystore
 github.com/ethereum/go-ethereum/common
 github.com/ethereum/go-ethereum/common/hexutil
 github.com/ethereum/go-ethereum/common/math
@@ -63,6 +67,7 @@ github.com/ethereum/go-ethereum/crypto/secp256k1/libsecp256k1/include
 github.com/ethereum/go-ethereum/crypto/secp256k1/libsecp256k1/src
 github.com/ethereum/go-ethereum/crypto/secp256k1/libsecp256k1/src/modules/recovery
 github.com/ethereum/go-ethereum/ethclient
+github.com/ethereum/go-ethereum/event
 github.com/ethereum/go-ethereum/log
 github.com/ethereum/go-ethereum/metrics
 github.com/ethereum/go-ethereum/p2p/netutil
@@ -71,10 +76,17 @@ github.com/ethereum/go-ethereum/params/forks
 github.com/ethereum/go-ethereum/rlp
 github.com/ethereum/go-ethereum/rlp/internal/rlpstruct
 github.com/ethereum/go-ethereum/rpc
+github.com/ethereum/go-ethereum/signer/core/apitypes
+# github.com/fsnotify/fsnotify v1.6.0
+## explicit; go 1.16
+github.com/fsnotify/fsnotify
 # github.com/go-ole/go-ole v1.3.0
 ## explicit; go 1.12
 github.com/go-ole/go-ole
 github.com/go-ole/go-ole/oleutil
+# github.com/google/uuid v1.3.0
+## explicit
+github.com/google/uuid
 # github.com/gorilla/websocket v1.4.2
 ## explicit; go 1.12
 github.com/gorilla/websocket
@@ -84,6 +96,9 @@ github.com/holiman/uint256
 # github.com/joho/godotenv v1.5.1
 ## explicit; go 1.12
 github.com/joho/godotenv
+# github.com/mattn/go-sqlite3 v1.14.26
+## explicit; go 1.19
+github.com/mattn/go-sqlite3
 # github.com/mmcloughlin/addchain v0.4.0
 ## explicit; go 1.16
 github.com/mmcloughlin/addchain
@@ -123,6 +138,8 @@ github.com/tklauser/go-sysconf
 github.com/tklauser/numcpus
 # golang.org/x/crypto v0.17.0
 ## explicit; go 1.18
+golang.org/x/crypto/pbkdf2
+golang.org/x/crypto/scrypt
 golang.org/x/crypto/sha3
 # golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa
 ## explicit; go 1.20
