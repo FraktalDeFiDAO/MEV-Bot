@@ -120,7 +120,9 @@ unset. `MARKET_CACHE` controls where discovered pools are cached locally and
 discovered pools and tokens. Cached pools include their token addresses so the
 bot can resync them to the registry on startup. When syncing the registry,
 the bot queries existing entries to avoid duplicate transactions and logs the
-hash of each successful `addToken` or `addPool` call.
+hash of each successful `addToken` or `addPool` call. Runtime state tracks which
+tokens and pools are already registered so newly discovered addresses are only
+submitted once.
 
 ## Docker
 
