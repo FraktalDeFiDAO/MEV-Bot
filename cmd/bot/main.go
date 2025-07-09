@@ -10,8 +10,8 @@ import (
 	"github.com/joho/godotenv"
 
 	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/arb"
-
 	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/ethutil"
+	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/market"
 	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/watcher"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -30,10 +30,18 @@ var (
 	tradeEventID    common.Hash
 	syncABI         abi.ABI
 	syncEventID     common.Hash
+	pairABI         abi.ABI
+	pairEventID     common.Hash
+	poolABI         abi.ABI
+	poolEventID     common.Hash
 	newEventWatcher = func(sub watcher.LogSubscriber, q ethereum.FilterQuery) runner {
 		return watcher.NewEventWatcher(sub, q, profitLogHandler)
 	}
-	arbMon *arb.Monitor
+	newPairWatcher = func(sub watcher.LogSubscriber, q ethereum.FilterQuery) runner {
+		return watcher.NewEventWatcher(sub, q, pairLogHandler)
+	}
+	arbMon      *arb.Monitor
+	marketStore = market.New()
 )
 
 func init() {
@@ -49,6 +57,18 @@ func init() {
 		panic(err)
 	}
 	syncEventID = crypto.Keccak256Hash([]byte("Sync(uint112,uint112)"))
+
+	pairABI, err = abi.JSON(strings.NewReader(`[{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"token0","type":"address"},{"indexed":true,"internalType":"address","name":"token1","type":"address"},{"indexed":false,"internalType":"address","name":"pair","type":"address"},{"indexed":false,"internalType":"uint256","name":"","type":"uint256"}],"name":"PairCreated","type":"event"}]`))
+	if err != nil {
+		panic(err)
+	}
+	pairEventID = crypto.Keccak256Hash([]byte("PairCreated(address,address,address,uint256)"))
+
+	poolABI, err = abi.JSON(strings.NewReader(`[{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"token0","type":"address"},{"indexed":true,"internalType":"address","name":"token1","type":"address"},{"indexed":false,"internalType":"uint24","name":"fee","type":"uint24"},{"indexed":false,"internalType":"int24","name":"tickSpacing","type":"int24"},{"indexed":false,"internalType":"address","name":"pool","type":"address"}],"name":"PoolCreated","type":"event"}]`))
+	if err != nil {
+		panic(err)
+	}
+	poolEventID = crypto.Keccak256Hash([]byte("PoolCreated(address,address,uint24,int24,address)"))
 }
 
 // Entry point for the MEV bot. Connects to an Arbitrum node and listens for events.
@@ -72,6 +92,21 @@ func run(ctx context.Context, rpcURL string) error {
 		Topics: [][]common.Hash{{tradeEventID, syncEventID}},
 	}
 	ew := newEventWatcher(client, query)
+
+	// watch factory PairCreated/PoolCreated events if factories provided
+	var pw runner
+	if fenv := os.Getenv("FACTORIES"); fenv != "" {
+		var addrs []common.Address
+		for _, a := range strings.Split(fenv, ",") {
+			addr := common.HexToAddress(strings.TrimSpace(a))
+			addrs = append(addrs, addr)
+		}
+		pquery := ethereum.FilterQuery{
+			Addresses: addrs,
+			Topics:    [][]common.Hash{{pairEventID, poolEventID}},
+		}
+		pw = newPairWatcher(client, pquery)
+	}
 
 	if arbMon == nil {
 		pairEnv := os.Getenv("PAIRS")
@@ -98,7 +133,13 @@ func run(ctx context.Context, rpcURL string) error {
 			log.Printf("event watcher error: %v", err)
 		}
 	}()
-
+	if pw != nil {
+		go func() {
+			if err := pw.Run(ctx); err != nil && ctx.Err() == nil {
+				log.Printf("pair watcher error: %v", err)
+			}
+		}()
+	}
 	<-ctx.Done()
 	return ctx.Err()
 }
@@ -137,6 +178,46 @@ func profitLogHandler(l types.Log) {
 		}
 	} else {
 		log.Printf("log tx: %s", l.TxHash.Hex())
+	}
+}
+
+// pairLogHandler collects pool addresses from factory events.
+func pairLogHandler(l types.Log) {
+	if len(l.Topics) == 0 {
+		return
+	}
+	switch l.Topics[0] {
+	case pairEventID:
+		var ev struct {
+			Token0 common.Address
+			Token1 common.Address
+			Pair   common.Address
+			Arg3   *big.Int
+		}
+		if err := pairABI.UnpackIntoInterface(&ev, "PairCreated", l.Data); err == nil {
+			log.Printf("pair created %s", ev.Pair.Hex())
+			if marketStore != nil {
+				marketStore.Add(ev.Pair)
+			}
+		} else {
+			log.Printf("pair decode error: %v", err)
+		}
+	case poolEventID:
+		var ev struct {
+			Token0      common.Address
+			Token1      common.Address
+			Fee         *big.Int
+			TickSpacing *big.Int
+			Pool        common.Address
+		}
+		if err := poolABI.UnpackIntoInterface(&ev, "PoolCreated", l.Data); err == nil {
+			log.Printf("pool created %s", ev.Pool.Hex())
+			if marketStore != nil {
+				marketStore.Add(ev.Pool)
+			}
+		} else {
+			log.Printf("pool decode error: %v", err)
+		}
 	}
 }
 

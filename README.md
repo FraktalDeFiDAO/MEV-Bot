@@ -38,6 +38,9 @@ This project explores building a MEV bot targeting decentralized exchanges on Ar
    only log an error and no events will be seen. The bot will look for a `PAIRS`
    environment variable specifying pairs to monitor for arbitrage, formatted as
    `"addr1,addr2;addr3,addr4"`.
+   Set `FACTORIES` to a comma separated list of factory addresses to
+   automatically capture `PairCreated` and `PoolCreated` events and grow the
+   set of pools scanned for opportunities.
 6. Deploy contracts using `make deploy`. By default this deploys the
    `Registry` contract with `forge create`.  Pass `CONTRACT=path:Name` to
    deploy a different contract.  `RPC_URL` and `PRIVATE_KEY` must be set in

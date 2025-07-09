@@ -115,3 +115,27 @@ func TestProfitLogHandler(t *testing.T) {
 		t.Fatal("price update not logged")
 	}
 }
+
+func TestPairLogHandler(t *testing.T) {
+	buf := &bytes.Buffer{}
+	log.SetOutput(buf)
+	log.SetFlags(0)
+	defer func() {
+		log.SetOutput(os.Stderr)
+		log.SetFlags(log.LstdFlags)
+	}()
+
+	pairData, _ := pairABI.Events["PairCreated"].Inputs.Pack(common.Address{}, common.Address{}, common.HexToAddress("0x111"), big.NewInt(0))
+	pairLogHandler(types.Log{Topics: []common.Hash{pairEventID}, Data: pairData})
+	if !strings.Contains(buf.String(), "pair created") {
+		t.Fatal("pair not logged")
+	}
+	buf.Reset()
+
+	poolData, _ := poolABI.Events["PoolCreated"].Inputs.Pack(common.Address{}, common.Address{}, big.NewInt(3000), big.NewInt(60), common.HexToAddress("0x222"))
+	pairLogHandler(types.Log{Topics: []common.Hash{poolEventID}, Data: poolData})
+	if !strings.Contains(buf.String(), "pool created") {
+		t.Fatalf("pool not logged: %q", buf.String())
+	}
+}
+
