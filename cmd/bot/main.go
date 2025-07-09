@@ -298,9 +298,8 @@ func profitLogHandler(l types.Log) {
 				Reserve1 *big.Int
 			}
 			if err := syncABI.UnpackIntoInterface(&ev, "Sync", l.Data); err == nil {
-				price := new(big.Float).Quo(new(big.Float).SetInt(ev.Reserve1), new(big.Float).SetInt(ev.Reserve0))
-				f, _ := price.Float64()
-				log.Printf("price update pool=%s price=%f tx=%s", l.Address.Hex(), f, l.TxHash.Hex())
+				price := new(big.Rat).SetFrac(ev.Reserve1, ev.Reserve0)
+				log.Printf("price update pool=%s price=%s tx=%s", l.Address.Hex(), price.FloatString(6), l.TxHash.Hex())
 				if arbMon != nil {
 					arbMon.Update(l.Address, ev.Reserve0, ev.Reserve1)
 				}

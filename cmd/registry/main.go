@@ -49,7 +49,8 @@ func connect(ctx context.Context) (*registry.Client, *ethclient.Client, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	return client, rpc, nil}
+	return client, rpc, nil
+}
 
 func main() {
 	if len(os.Args) < 2 {
