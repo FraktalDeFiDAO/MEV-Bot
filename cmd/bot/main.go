@@ -537,7 +537,6 @@ func startServer(addr string) {
 						return
 					}
 				}
-
 				recordPool(p, t0, t1)
 			}
 			w.WriteHeader(http.StatusOK)

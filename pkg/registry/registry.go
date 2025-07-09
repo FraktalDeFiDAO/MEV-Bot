@@ -104,10 +104,14 @@ func (r *Client) PoolInfo(ctx context.Context, pool common.Address) (PoolInfo, e
 	if err := r.c.Call(&bind.CallOpts{Context: ctx}, &raw, "getPool", pool); err != nil {
 		return PoolInfo{}, err
 	}
-	return PoolInfo{
-		Token0:     raw[0].(common.Address),
-		Token1:     raw[1].(common.Address),
-		ExchangeID: raw[2].(*big.Int),
-		Enabled:    raw[3].(bool),
-	}, nil
+	if len(raw) == 0 {
+		return PoolInfo{}, nil
+	}
+	tup := raw[0].(struct {
+		Token0     common.Address
+		Token1     common.Address
+		ExchangeID *big.Int
+		Enabled    bool
+	})
+	return PoolInfo{Token0: tup.Token0, Token1: tup.Token1, ExchangeID: tup.ExchangeID, Enabled: tup.Enabled}, nil
 }
