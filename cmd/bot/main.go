@@ -9,6 +9,8 @@ import (
 
 	"github.com/joho/godotenv"
 
+	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/arb"
+
 	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/ethutil"
 	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/watcher"
 	"github.com/ethereum/go-ethereum"
@@ -31,6 +33,7 @@ var (
 	newEventWatcher = func(sub watcher.LogSubscriber, q ethereum.FilterQuery) runner {
 		return watcher.NewEventWatcher(sub, q, profitLogHandler)
 	}
+	arbMon *arb.Monitor
 )
 
 func init() {
@@ -70,6 +73,19 @@ func run(ctx context.Context, rpcURL string) error {
 	}
 	ew := newEventWatcher(client, query)
 
+	if arbMon == nil {
+		pairEnv := os.Getenv("PAIRS")
+		var pairs [][2]common.Address
+		for _, seg := range strings.Split(pairEnv, ";") {
+			parts := strings.Split(seg, ",")
+			if len(parts) == 2 {
+				p0 := common.HexToAddress(strings.TrimSpace(parts[0]))
+				p1 := common.HexToAddress(strings.TrimSpace(parts[1]))
+				pairs = append(pairs, [2]common.Address{p0, p1})
+			}
+		}
+		arbMon = arb.NewMonitor(pairs, 500, 1)
+	}
 
 	// run watchers until context cancellation
 	go func() {
@@ -110,6 +126,9 @@ func profitLogHandler(l types.Log) {
 				price := new(big.Float).Quo(new(big.Float).SetInt(ev.Reserve1), new(big.Float).SetInt(ev.Reserve0))
 				f, _ := price.Float64()
 				log.Printf("price update pool=%s price=%f tx=%s", l.Address.Hex(), f, l.TxHash.Hex())
+				if arbMon != nil {
+					arbMon.Update(l.Address, ev.Reserve0, ev.Reserve1)
+				}
 			} else {
 				log.Printf("sync event decode error: %v", err)
 			}

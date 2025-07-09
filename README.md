@@ -34,8 +34,10 @@ This project explores building a MEV bot targeting decentralized exchanges on Ar
    The bot automatically loads environment variables from a `.env` file if
    present using `godotenv`. Set `DEBUG=1` to enable more verbose logging with
    file and line numbers. **Use a WebSocket RPC URL** (e.g. `wss://...`) so the
- block and event watchers can subscribe to notifications. HTTP endpoints will
-  only log an error and no events will be seen.
+   block and event watchers can subscribe to notifications. HTTP endpoints will
+   only log an error and no events will be seen. The bot will look for a `PAIRS`
+   environment variable specifying pairs to monitor for arbitrage, formatted as
+   `"addr1,addr2;addr3,addr4"`.
 6. Deploy contracts using `make deploy`. By default this deploys the
    `Registry` contract with `forge create`.  Pass `CONTRACT=path:Name` to
    deploy a different contract.  `RPC_URL` and `PRIVATE_KEY` must be set in

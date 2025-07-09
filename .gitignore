@@ -136,3 +136,4 @@ lib/
 coverage.out
 .gitmodules
 /bot
+cmd/bot/bindings/

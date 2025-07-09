@@ -26,8 +26,7 @@ run-dev:
 >go run ./cmd/bot
 
 deploy:
->forge create $(CONTRACT) --rpc-url $(RPC_URL) \
-	--private-key $(PRIVATE_KEY) --broadcast
+>forge create $(CONTRACT) --rpc-url $(RPC_URL) --private-key $(PRIVATE_KEY)
 
 generate-bindings:
 >scripts/generate_bindings.sh
