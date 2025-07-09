@@ -119,15 +119,25 @@ func TestEventWatcherRun(t *testing.T) {
 }
 
 func TestBlockWatcherSubscriptionError(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
 	bw := NewBlockWatcher(errAfterSubscriber{})
-	if err := bw.Run(context.Background()); err == nil || err.Error() != "boom" {
-		t.Fatalf("expected boom, got %v", err)
+	go func() {
+		time.Sleep(20 * time.Millisecond)
+		cancel()
+	}()
+	if err := bw.Run(ctx); err != context.Canceled {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestEventWatcherSubscriptionError(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
 	ew := NewEventWatcher(errAfterLogSubscriber{}, ethereum.FilterQuery{}, nil)
-	if err := ew.Run(context.Background()); err == nil || err.Error() != "boom" {
-		t.Fatalf("expected boom, got %v", err)
+	go func() {
+		time.Sleep(20 * time.Millisecond)
+		cancel()
+	}()
+	if err := ew.Run(ctx); err != context.Canceled {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }

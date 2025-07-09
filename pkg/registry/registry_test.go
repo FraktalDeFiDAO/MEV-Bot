@@ -22,13 +22,26 @@ func (s *stubContract) Call(opts *bind.CallOpts, result *[]interface{}, method s
 	switch v := s.callRes.(type) {
 	case []common.Address:
 		*result = append(*result, v)
+	case PoolInfo:
+		tup := struct {
+			Token0     common.Address
+			Token1     common.Address
+			ExchangeID *big.Int
+			Enabled    bool
+		}{v.Token0, v.Token1, v.ExchangeID, v.Enabled}
+		*result = append(*result, tup)
 	case struct {
 		Token0     common.Address
 		Token1     common.Address
 		ExchangeID *big.Int
 		Enabled    bool
 	}:
-		*result = append(*result, v.Token0, v.Token1, v.ExchangeID, v.Enabled)
+		*result = append(*result, struct {
+			Token0     common.Address
+			Token1     common.Address
+			ExchangeID *big.Int
+			Enabled    bool
+		}{v.Token0, v.Token1, v.ExchangeID, v.Enabled})
 	}
 	return nil
 }

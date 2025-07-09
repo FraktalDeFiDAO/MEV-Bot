@@ -34,3 +34,17 @@ func TestMarket(t *testing.T) {
 		t.Fatal("expected pool list size 1")
 	}
 }
+
+func TestPoolsForTokens(t *testing.T) {
+	m := New()
+	a := common.HexToAddress("0x1")
+	b := common.HexToAddress("0x2")
+	t0 := common.HexToAddress("0xa")
+	t1 := common.HexToAddress("0xb")
+	m.AddPool(a, t0, t1)
+	m.AddPool(b, t1, t0)
+	res := m.PoolsForTokens(t0, t1)
+	if len(res) != 2 {
+		t.Fatalf("expected 2 pools, got %d", len(res))
+	}
+}
