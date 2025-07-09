@@ -76,7 +76,7 @@ func init() {
 // Entry point for the MEV bot. Connects to an Arbitrum node and listens for events.
 
 func run(ctx context.Context, rpcURL, regAddr, keyHex string) error {
-	client, err := connectClient(ctx, rpcURL)
+  client, err := connectClient(ctx, rpcURL)
 	if err != nil {
 		return err
 	}
@@ -100,6 +100,7 @@ func run(ctx context.Context, rpcURL, regAddr, keyHex string) error {
 			log.Printf("key error: %v", err)
 		}
 	}
+
 
 	bw := newBlockWatcher(client)
 	// listen for TradeExecuted and Sync events
