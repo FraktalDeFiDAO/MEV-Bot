@@ -50,6 +50,7 @@ func TestRun(t *testing.T) {
 
 	bwCalled := false
 	ewCalled := false
+	var capturedQuery ethereum.FilterQuery
 	newBlockWatcher = func(sub watcher.HeaderSubscriber) runner {
 		return runnerFunc(func(ctx context.Context) error {
 			bwCalled = true
@@ -58,6 +59,7 @@ func TestRun(t *testing.T) {
 		})
 	}
 	newEventWatcher = func(sub watcher.LogSubscriber, q ethereum.FilterQuery) runner {
+		capturedQuery = q
 		return runnerFunc(func(ctx context.Context) error {
 			ewCalled = true
 			<-ctx.Done()
@@ -83,6 +85,9 @@ func TestRun(t *testing.T) {
 	}
 	if !bwCalled || !ewCalled {
 		t.Fatalf("watchers not called")
+	}
+	if len(capturedQuery.Topics) == 0 || len(capturedQuery.Topics[0]) != 2 {
+		t.Fatalf("unexpected query topics: %v", capturedQuery.Topics)
 	}
 }
 

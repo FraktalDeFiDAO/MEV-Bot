@@ -28,7 +28,6 @@ var (
 	tradeEventID    common.Hash
 	syncABI         abi.ABI
 	syncEventID     common.Hash
-
 	newEventWatcher = func(sub watcher.LogSubscriber, q ethereum.FilterQuery) runner {
 		return watcher.NewEventWatcher(sub, q, profitLogHandler)
 	}
@@ -65,7 +64,12 @@ func run(ctx context.Context, rpcURL string) error {
 	log.Println("connected to arbitrum", rpcURL)
 
 	bw := newBlockWatcher(client)
-	ew := newEventWatcher(client, ethereum.FilterQuery{})
+	// listen for TradeExecuted and Sync events
+	query := ethereum.FilterQuery{
+		Topics: [][]common.Hash{{tradeEventID, syncEventID}},
+	}
+	ew := newEventWatcher(client, query)
+
 
 	// run watchers until context cancellation
 	go func() {
