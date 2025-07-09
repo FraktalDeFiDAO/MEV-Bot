@@ -52,7 +52,7 @@ This project explores building a MEV bot targeting decentralized exchanges on Ar
    (and thus `make run`). The `generate-bindings` target can still be called
    manually if desired. It runs `scripts/generate_bindings.sh` which uses
    `abigen` to create Go packages under `cmd/bot/bindings`. If `abigen` isn't
-   installed, you can add it to your `PATH` with:
+   installed the script simply skips generation. To install it run:
 
    ```bash
   go install github.com/ethereum/go-ethereum/cmd/abigen@latest
