@@ -91,6 +91,15 @@ Alternatively you can just run `make test` which wraps both commands.
 The goal is to watch Arbitrum events for arbitrage opportunities across many
 DEXes.
 
+`Market` now records both discovered pools and the tokens they trade. Pool and
+token addresses are collected from factory events in real time and can be
+listed via the bot's API in future iterations. A simple `NonceManager` utility
+helps avoid transaction conflicts when submitting many arbitrage attempts.
+
+A lightweight Vue 3 front end scaffold lives in `web/`. It uses Vite,
+Tailwind, Pinia, Viem, and Vue Router to visualize saved tokens and pools.
+Install dependencies with `npm install` and run `npm run dev` to launch the UI.
+
 A sample `.env.sample` file is provided containing environment variables used by
 the Go bot, such as `RPC_URL` and `PRIVATE_KEY`. Copy it to `.env` and adjust the
 values as needed. `RPC_URL` defaults to the public Arbitrum RPC endpoint if left

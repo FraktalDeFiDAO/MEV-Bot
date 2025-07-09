@@ -198,6 +198,8 @@ func pairLogHandler(l types.Log) {
 			log.Printf("pair created %s", ev.Pair.Hex())
 			if marketStore != nil {
 				marketStore.Add(ev.Pair)
+				marketStore.AddToken(ev.Token0)
+				marketStore.AddToken(ev.Token1)
 			}
 		} else {
 			log.Printf("pair decode error: %v", err)
@@ -214,6 +216,8 @@ func pairLogHandler(l types.Log) {
 			log.Printf("pool created %s", ev.Pool.Hex())
 			if marketStore != nil {
 				marketStore.Add(ev.Pool)
+				marketStore.AddToken(ev.Token0)
+				marketStore.AddToken(ev.Token1)
 			}
 		} else {
 			log.Printf("pool decode error: %v", err)
