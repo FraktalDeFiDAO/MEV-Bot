@@ -33,6 +33,7 @@ func (s *stubContract) Call(opts *bind.CallOpts, result *[]interface{}, method s
 		*result = append(*result, v.Token0, v.Token1, v.ExchangeID, v.Enabled)
 	}
 	return nil
+
 }
 
 func (s *stubContract) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
