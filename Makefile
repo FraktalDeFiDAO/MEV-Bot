@@ -1,5 +1,5 @@
 .RECIPEPREFIX := >
-.PHONY: test solidity-test go-test build docker run run-dev deploy clean
+.PHONY: test solidity-test go-test build docker run run-dev deploy clean generate-bindings
 
 CONTRACT ?= contracts/Registry.sol:Registry
 
@@ -27,6 +27,9 @@ run-dev:
 
 deploy:
 >forge create $(CONTRACT) --rpc-url $(RPC_URL) --private-key $(PRIVATE_KEY)
+
+generate-bindings:
+>scripts/generate_bindings.sh
 
 clean:
 >rm -f bot

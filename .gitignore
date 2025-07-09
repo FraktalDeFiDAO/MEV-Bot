@@ -135,4 +135,5 @@ cache/
 lib/
 coverage.out
 .gitmodules
-bot
+/bot
+cmd/bot/bindings/
