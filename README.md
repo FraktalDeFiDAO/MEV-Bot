@@ -27,11 +27,14 @@ This project explores building a MEV bot targeting decentralized exchanges on Ar
   `BlockWatcher` logs new block headers, while `EventWatcher` can subscribe to
   contract events using a filter query. When a `TradeExecuted` event is
   observed, the bot prints the input and profit so profitable trades are logged
-  in real time.
+  in real time. The watcher also decodes Uniswap V2 `Sync` events to log pool
+  price updates.
 5. Start the bot with `make run` (or `make run-dev` to run using `go run`).
    The bot automatically loads environment variables from a `.env` file if
    present using `godotenv`. Set `DEBUG=1` to enable more verbose logging with
-   file and line numbers.
+   file and line numbers. **Use a WebSocket RPC URL** (e.g. `wss://...`) so the
+   block and event watchers can subscribe to notifications. HTTP endpoints will
+   only log an error and no events will be seen.
 6. Deploy contracts using `make deploy`. By default this deploys the
    `Registry` contract with `forge create`.  Pass `CONTRACT=path:Name` to
    deploy a different contract.  `RPC_URL` and `PRIVATE_KEY` must be set in

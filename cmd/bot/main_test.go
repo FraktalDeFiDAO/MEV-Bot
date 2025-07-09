@@ -1,13 +1,20 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"log"
+	"math/big"
+	"os"
 	"os/exec"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/watcher"
 	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 )
 
 type runnerFunc func(context.Context) error
@@ -76,5 +83,30 @@ func TestRun(t *testing.T) {
 	}
 	if !bwCalled || !ewCalled {
 		t.Fatalf("watchers not called")
+	}
+}
+
+func TestProfitLogHandler(t *testing.T) {
+	buf := &bytes.Buffer{}
+	log.SetOutput(buf)
+	log.SetFlags(0)
+	defer func() {
+		log.SetOutput(os.Stderr)
+		log.SetFlags(log.LstdFlags)
+	}()
+
+	// profit event
+	data, _ := tradeABI.Pack("TradeExecuted", big.NewInt(1), big.NewInt(2))
+	profitLogHandler(types.Log{Topics: []common.Hash{tradeEventID}, Data: data, TxHash: common.HexToHash("0x1")})
+	if !strings.Contains(buf.String(), "profit event") {
+		t.Fatal("profit event not logged")
+	}
+	buf.Reset()
+
+	// sync event
+	data, _ = syncABI.Events["Sync"].Inputs.Pack(big.NewInt(5), big.NewInt(10))
+	profitLogHandler(types.Log{Topics: []common.Hash{syncEventID}, Data: data, TxHash: common.HexToHash("0x2"), Address: common.HexToAddress("0x3")})
+	if !strings.Contains(buf.String(), "price update") {
+		t.Fatal("price update not logged")
 	}
 }

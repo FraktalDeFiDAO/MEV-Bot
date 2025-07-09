@@ -26,6 +26,9 @@ var (
 	newBlockWatcher = func(sub watcher.HeaderSubscriber) runner { return watcher.NewBlockWatcher(sub) }
 	tradeABI        abi.ABI
 	tradeEventID    common.Hash
+	syncABI         abi.ABI
+	syncEventID     common.Hash
+
 	newEventWatcher = func(sub watcher.LogSubscriber, q ethereum.FilterQuery) runner {
 		return watcher.NewEventWatcher(sub, q, profitLogHandler)
 	}
@@ -38,6 +41,12 @@ func init() {
 		panic(err)
 	}
 	tradeEventID = crypto.Keccak256Hash([]byte("TradeExecuted(uint256,uint256)"))
+
+	syncABI, err = abi.JSON(strings.NewReader(`[{"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint112","name":"reserve0","type":"uint112"},{"indexed":false,"internalType":"uint112","name":"reserve1","type":"uint112"}],"name":"Sync","type":"event"}]`))
+	if err != nil {
+		panic(err)
+	}
+	syncEventID = crypto.Keccak256Hash([]byte("Sync(uint112,uint112)"))
 }
 
 // Entry point for the MEV bot. Connects to an Arbitrum node and listens for events.
@@ -76,15 +85,32 @@ func run(ctx context.Context, rpcURL string) error {
 
 // profitLogHandler decodes TradeExecuted events and prints the profit.
 func profitLogHandler(l types.Log) {
-	if len(l.Topics) > 0 && l.Topics[0] == tradeEventID {
-		var ev struct {
-			AmountIn *big.Int
-			Profit   *big.Int
-		}
-		if err := tradeABI.UnpackIntoInterface(&ev, "TradeExecuted", l.Data); err == nil {
-			log.Printf("profit event input=%s profit=%s tx=%s", ev.AmountIn.String(), ev.Profit.String(), l.TxHash.Hex())
-		} else {
-			log.Printf("profit event decode error: %v", err)
+	if len(l.Topics) > 0 {
+		switch l.Topics[0] {
+		case tradeEventID:
+			var ev struct {
+				AmountIn *big.Int
+				Profit   *big.Int
+			}
+			if err := tradeABI.UnpackIntoInterface(&ev, "TradeExecuted", l.Data); err == nil {
+				log.Printf("profit event input=%s profit=%s tx=%s", ev.AmountIn.String(), ev.Profit.String(), l.TxHash.Hex())
+			} else {
+				log.Printf("profit event decode error: %v", err)
+			}
+		case syncEventID:
+			var ev struct {
+				Reserve0 *big.Int
+				Reserve1 *big.Int
+			}
+			if err := syncABI.UnpackIntoInterface(&ev, "Sync", l.Data); err == nil {
+				price := new(big.Float).Quo(new(big.Float).SetInt(ev.Reserve1), new(big.Float).SetInt(ev.Reserve0))
+				f, _ := price.Float64()
+				log.Printf("price update pool=%s price=%f tx=%s", l.Address.Hex(), f, l.TxHash.Hex())
+			} else {
+				log.Printf("sync event decode error: %v", err)
+			}
+		default:
+			log.Printf("log tx: %s", l.TxHash.Hex())
 		}
 	} else {
 		log.Printf("log tx: %s", l.TxHash.Hex())
