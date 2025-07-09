@@ -4,3 +4,4 @@ out
 cache
 lib/
 coverage.out
+cmd/bot/bindings/

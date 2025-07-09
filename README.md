@@ -30,17 +30,19 @@ This project explores building a MEV bot targeting decentralized exchanges on Ar
   profitable trades are logged in real time. `Sync` events are decoded to
   log pool price updates, allowing the bot to track market movements without
   processing every log on the chain.
-
 5. Start the bot with `make run` (or `make run-dev` to run using `go run`).
    The bot automatically loads environment variables from a `.env` file if
    present using `godotenv`. Set `DEBUG=1` to enable more verbose logging with
    file and line numbers. **Use a WebSocket RPC URL** (e.g. `wss://...`) so the
-   block and event watchers can subscribe to notifications. HTTP endpoints will
-   only log an error and no events will be seen.
+ block and event watchers can subscribe to notifications. HTTP endpoints will
+  only log an error and no events will be seen.
 6. Deploy contracts using `make deploy`. By default this deploys the
    `Registry` contract with `forge create`.  Pass `CONTRACT=path:Name` to
    deploy a different contract.  `RPC_URL` and `PRIVATE_KEY` must be set in
    the environment.
+7. Generate Go contract bindings with `make generate-bindings`. This runs
+   `scripts/generate_bindings.sh` which uses `abigen` to create Go packages
+   under `cmd/bot/bindings`.
 
 The repo now includes a `Registry` contract that stores token, exchange and pool metadata using library based diamond storage. It forms the on-chain
 configuration for the bot and demonstrates how components remain modular.

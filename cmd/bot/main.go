@@ -70,6 +70,7 @@ func run(ctx context.Context, rpcURL string) error {
 	}
 	ew := newEventWatcher(client, query)
 
+
 	// run watchers until context cancellation
 	go func() {
 		if err := bw.Run(ctx); err != nil && ctx.Err() == nil {
