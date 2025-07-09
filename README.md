@@ -65,6 +65,7 @@ This project explores building a MEV bot targeting decentralized exchanges on Ar
    `ARGS="add-pool 0x..."`. When only a pool address is supplied the CLI
    queries the pool for its tokens and registers everything automatically.
    The tool uses the same `RPC_URL`, `REGISTRY_ADDRESS`, and `PRIVATE_KEY`
+
    environment variables as the bot.
 
 The repo now includes a `Registry` contract that stores token, exchange and pool metadata using library based diamond storage. It forms the on-chain
