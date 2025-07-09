@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/json"
+	"fmt"
 	"log"
 	"math/big"
 	"net/http"
@@ -19,6 +20,7 @@ import (
 	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/watcher"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -60,6 +62,7 @@ var (
 	arbMon      *arb.Monitor
 	marketStore *market.Persistent
 	regClient   registryClient
+	rpcClient   *ethclient.Client
 	knownTokens map[common.Address]struct{}
 	knownPools  map[common.Address]struct{}
 )
@@ -99,6 +102,7 @@ func run(ctx context.Context, rpcURL, regAddr, keyHex string) error {
 		return err
 	}
 	defer client.Close()
+	rpcClient = client
 
 	if _, err := client.ChainID(ctx); err != nil {
 		return err
@@ -319,7 +323,8 @@ func recordPool(pool, token0, token1 common.Address) {
 	}
 
 	if _, ok := knownTokens[token0]; !ok {
-		tx, err := regClient.AddToken(token0, 18)
+		d := fetchDecimals(context.Background(), token0)
+		tx, err := regClient.AddToken(token0, d)
 		if err != nil {
 			log.Printf("registry token0 error: %v", err)
 			return
@@ -328,11 +333,12 @@ func recordPool(pool, token0, token1 common.Address) {
 			log.Printf("token0 tx failed: %v", err)
 			return
 		}
-    log.Printf("registry add token %s tx=%s", token0.Hex(), tx.Hash().Hex())
+		log.Printf("registry add token %s tx=%s", token0.Hex(), tx.Hash().Hex())
 		knownTokens[token0] = struct{}{}
 	}
 	if _, ok := knownTokens[token1]; !ok {
-		tx, err := regClient.AddToken(token1, 18)
+		d := fetchDecimals(context.Background(), token1)
+		tx, err := regClient.AddToken(token1, d)
 		if err != nil {
 			log.Printf("registry token1 error: %v", err)
 			return
@@ -359,6 +365,7 @@ func recordPool(pool, token0, token1 common.Address) {
 	}
 
 	if marketStore != nil {
+		existing := marketStore.PoolsForTokens(token0, token1)
 		if !marketStore.HasToken(token0) {
 			marketStore.AddToken(token0)
 		}
@@ -367,6 +374,13 @@ func recordPool(pool, token0, token1 common.Address) {
 		}
 		if !marketStore.Has(pool) {
 			marketStore.AddPool(pool, token0, token1)
+		}
+		if arbMon != nil {
+			for _, p := range existing {
+				if p != pool {
+					arbMon.AddPair(pool, p)
+				}
+			}
 		}
 	}
 }
@@ -377,7 +391,8 @@ func recordToken(token common.Address) {
 		return
 	}
 	if _, ok := knownTokens[token]; !ok {
-		tx, err := regClient.AddToken(token, 18)
+		d := fetchDecimals(context.Background(), token)
+		tx, err := regClient.AddToken(token, d)
 		if err != nil {
 			log.Printf("registry token error: %v", err)
 			return
@@ -392,6 +407,37 @@ func recordToken(token common.Address) {
 	if marketStore != nil && !marketStore.HasToken(token) {
 		marketStore.AddToken(token)
 	}
+}
+
+func fetchDecimals(ctx context.Context, token common.Address) uint8 {
+	if rpcClient == nil {
+		return 18
+	}
+	ercabi, _ := abi.JSON(strings.NewReader(`[{"inputs":[],"name":"decimals","outputs":[{"internalType":"uint8","name":"","type":"uint8"}],"stateMutability":"view","type":"function"}]`))
+	bound := bind.NewBoundContract(token, ercabi, rpcClient, rpcClient, rpcClient)
+	var out []interface{}
+	if err := bound.Call(&bind.CallOpts{Context: ctx}, &out, "decimals"); err == nil && len(out) > 0 {
+		return out[0].(uint8)
+	}
+	return 18
+}
+
+func fetchPoolTokens(ctx context.Context, pool common.Address) (common.Address, common.Address, error) {
+	if rpcClient == nil {
+		return common.Address{}, common.Address{}, fmt.Errorf("no rpc")
+	}
+	abiJSON := `[{"inputs":[],"name":"token0","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"token1","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"}]`
+	pabi, _ := abi.JSON(strings.NewReader(abiJSON))
+	bound := bind.NewBoundContract(pool, pabi, rpcClient, rpcClient, rpcClient)
+	var t0out []interface{}
+	if err := bound.Call(&bind.CallOpts{Context: ctx}, &t0out, "token0"); err != nil {
+		return common.Address{}, common.Address{}, err
+	}
+	var t1out []interface{}
+	if err := bound.Call(&bind.CallOpts{Context: ctx}, &t1out, "token1"); err != nil {
+		return common.Address{}, common.Address{}, err
+	}
+	return t0out[0].(common.Address), t1out[0].(common.Address), nil
 }
 
 // pairLogHandler collects pool addresses from factory events.
@@ -479,8 +525,20 @@ func startServer(addr string) {
 			}
 			if json.NewDecoder(r.Body).Decode(&in) == nil {
 				p := common.HexToAddress(in.Address)
-				t0 := common.HexToAddress(in.Token0)
-				t1 := common.HexToAddress(in.Token1)
+				var t0, t1 common.Address
+				if in.Token0 != "" && in.Token1 != "" {
+					t0 = common.HexToAddress(in.Token0)
+					t1 = common.HexToAddress(in.Token1)
+				} else {
+					var err error
+					t0, t1, err = fetchPoolTokens(r.Context(), p)
+					if err != nil {
+						log.Printf("fetch tokens: %v", err)
+						w.WriteHeader(http.StatusBadRequest)
+						return
+					}
+				}
+
 				recordPool(p, t0, t1)
 			}
 			w.WriteHeader(http.StatusOK)

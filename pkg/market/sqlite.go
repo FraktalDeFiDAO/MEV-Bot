@@ -96,3 +96,8 @@ func (p *Persistent) Close() error {
 	}
 	return nil
 }
+
+// PoolsForTokens returns pools that trade the given token pair.
+func (p *Persistent) PoolsForTokens(t0, t1 common.Address) []common.Address {
+	return p.Market.PoolsForTokens(t0, t1)
+}

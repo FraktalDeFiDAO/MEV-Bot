@@ -61,8 +61,11 @@ This project explores building a MEV bot targeting decentralized exchanges on Ar
   ```
 
 8. Interact with the on-chain registry using `make registry-cli`. Pass
-   commands such as `ARGS="tokens"` or `ARGS="add-token 0x..."`. The tool
-   uses the same `RPC_URL`, `REGISTRY_ADDRESS`, and `PRIVATE_KEY`
+   commands such as `ARGS="tokens"`, `ARGS="add-token 0x..."`, or
+   `ARGS="add-pool 0x..."`. When only a pool address is supplied the CLI
+   queries the pool for its tokens and registers everything automatically.
+   The tool uses the same `RPC_URL`, `REGISTRY_ADDRESS`, and `PRIVATE_KEY`
+
    environment variables as the bot.
 
 The repo now includes a `Registry` contract that stores token, exchange and pool metadata using library based diamond storage. It forms the on-chain
@@ -118,9 +121,10 @@ Install dependencies with `make web-install` and run `make web-dev` to launch
 the UI.  Build the production bundle with `make web-build`.
 
 The Go bot exposes a small HTTP API on port `8080` that the frontend uses. It
-provides `GET /tokens` and `GET /pools` to list the current market as well as
-`POST /tokens` and `POST /pools` to add new entries which are also registered
-on-chain when a registry address and key are configured.
+provides `GET /tokens` and `GET /pools` to list the current market. `POST /tokens`
+adds a single token, while `POST /pools` accepts just a pool address and
+automatically fetches its tokens before updating the registry when a registry
+address and key are configured.
 
 A sample `.env.sample` file is provided containing environment variables used by
 the Go bot, such as `RPC_URL` and `PRIVATE_KEY`. Copy it to `.env` and adjust the
