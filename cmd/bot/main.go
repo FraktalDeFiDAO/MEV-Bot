@@ -328,7 +328,7 @@ func recordPool(pool, token0, token1 common.Address) {
 			log.Printf("token0 tx failed: %v", err)
 			return
 		}
-		log.Printf("registry add token %s tx=%s", token0.Hex(), tx.Hash().Hex())
+    log.Printf("registry add token %s tx=%s", token0.Hex(), tx.Hash().Hex())
 		knownTokens[token0] = struct{}{}
 	}
 	if _, ok := knownTokens[token1]; !ok {
