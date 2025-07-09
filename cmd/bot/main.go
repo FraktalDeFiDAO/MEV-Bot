@@ -28,6 +28,7 @@ var (
 	tradeEventID    common.Hash
 	syncABI         abi.ABI
 	syncEventID     common.Hash
+
 	newEventWatcher = func(sub watcher.LogSubscriber, q ethereum.FilterQuery) runner {
 		return watcher.NewEventWatcher(sub, q, profitLogHandler)
 	}
