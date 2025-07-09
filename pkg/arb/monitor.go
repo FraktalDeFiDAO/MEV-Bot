@@ -28,6 +28,17 @@ func (m *Monitor) Update(addr common.Address, r0, r1 *big.Int) {
 	m.check()
 }
 
+// AddPair registers a new pair to monitor.
+func (m *Monitor) AddPair(a, b common.Address) {
+	for _, p := range m.pairs {
+		if (p[0] == a && p[1] == b) || (p[0] == b && p[1] == a) {
+			return
+		}
+	}
+	m.pairs = append(m.pairs, [2]common.Address{a, b})
+	m.check()
+}
+
 func (m *Monitor) check() {
 	for _, p := range m.pairs {
 		a := m.pools[p[0]]
