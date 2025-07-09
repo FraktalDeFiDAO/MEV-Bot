@@ -197,7 +197,8 @@ func syncRegistry() {
 		knownPools = make(map[common.Address]struct{})
 	}
 
-  ctx := context.Background()
+	ctx := context.Background()
+
 
 	onchainTokens, err := regClient.Tokens(ctx)
 	if err != nil {
@@ -216,7 +217,6 @@ func syncRegistry() {
 		} else {
 			log.Printf("registry add token %s tx=%s", t.Hex(), tx.Hash().Hex())
 			knownTokens[t] = struct{}{}
-
 		}
 	}
 
@@ -323,11 +323,21 @@ func pairLogHandler(l types.Log) {
 			Arg3   *big.Int
 		}
 		if err := pairABI.UnpackIntoInterface(&ev, "PairCreated", l.Data); err == nil {
+			if len(l.Topics) > 2 {
+				ev.Token0 = common.BytesToAddress(l.Topics[1].Bytes())
+				ev.Token1 = common.BytesToAddress(l.Topics[2].Bytes())
+			}
 			log.Printf("pair created %s", ev.Pair.Hex())
 			if marketStore != nil {
-				marketStore.AddPool(ev.Pair, ev.Token0, ev.Token1)
-				marketStore.AddToken(ev.Token0)
-				marketStore.AddToken(ev.Token1)
+				if !marketStore.HasToken(ev.Token0) {
+					marketStore.AddToken(ev.Token0)
+				}
+				if !marketStore.HasToken(ev.Token1) {
+					marketStore.AddToken(ev.Token1)
+				}
+				if !marketStore.Has(ev.Pair) {
+					marketStore.AddPool(ev.Pair, ev.Token0, ev.Token1)
+				}
 			}
 			if regClient != nil {
 				if _, ok := knownTokens[ev.Token0]; !ok {
@@ -353,7 +363,6 @@ func pairLogHandler(l types.Log) {
 						log.Printf("registry add pool %s tx=%s", ev.Pair.Hex(), tx.Hash().Hex())
 						knownPools[ev.Pair] = struct{}{}
 					}
-
 				}
 			}
 		} else {
@@ -368,11 +377,21 @@ func pairLogHandler(l types.Log) {
 			Pool        common.Address
 		}
 		if err := poolABI.UnpackIntoInterface(&ev, "PoolCreated", l.Data); err == nil {
+			if len(l.Topics) > 2 {
+				ev.Token0 = common.BytesToAddress(l.Topics[1].Bytes())
+				ev.Token1 = common.BytesToAddress(l.Topics[2].Bytes())
+			}
 			log.Printf("pool created %s", ev.Pool.Hex())
 			if marketStore != nil {
-				marketStore.AddPool(ev.Pool, ev.Token0, ev.Token1)
-				marketStore.AddToken(ev.Token0)
-				marketStore.AddToken(ev.Token1)
+				if !marketStore.HasToken(ev.Token0) {
+					marketStore.AddToken(ev.Token0)
+				}
+				if !marketStore.HasToken(ev.Token1) {
+					marketStore.AddToken(ev.Token1)
+				}
+				if !marketStore.Has(ev.Pool) {
+					marketStore.AddPool(ev.Pool, ev.Token0, ev.Token1)
+				}
 			}
 			if regClient != nil {
 				if _, ok := knownTokens[ev.Token0]; !ok {
@@ -398,7 +417,6 @@ func pairLogHandler(l types.Log) {
 						log.Printf("registry add pool %s tx=%s", ev.Pool.Hex(), tx.Hash().Hex())
 						knownPools[ev.Pool] = struct{}{}
 					}
-
 				}
 			}
 		} else {
@@ -433,7 +451,6 @@ func startServer(addr string) {
 							log.Printf("registry token error: %v", err)
 						}
 					}
-
 				}
 			}
 			w.WriteHeader(http.StatusOK)
@@ -487,7 +504,6 @@ func startServer(addr string) {
 							log.Printf("registry pool error: %v", err)
 						}
 					}
-
 				}
 			}
 			w.WriteHeader(http.StatusOK)
@@ -521,7 +537,6 @@ func main() {
 	marketStore = market.LoadFromFile(cachePath)
 	knownTokens = make(map[common.Address]struct{})
 	knownPools = make(map[common.Address]struct{})
-
 
 	rpcURL := os.Getenv("RPC_URL")
 	if rpcURL == "" {

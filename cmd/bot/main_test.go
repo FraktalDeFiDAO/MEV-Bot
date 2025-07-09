@@ -141,6 +141,30 @@ func TestPairLogHandler(t *testing.T) {
 	}
 }
 
+func TestPairLogHandlerRegistry(t *testing.T) {
+	marketStore = &market.Persistent{Market: market.New()}
+	stub := &stubRegistry{}
+	regClient = stub
+	knownTokens = make(map[common.Address]struct{})
+	knownPools = make(map[common.Address]struct{})
+
+	t0 := common.HexToAddress("0xabc")
+	t1 := common.HexToAddress("0xdef")
+	pair := common.HexToAddress("0x123")
+	data, _ := pairABI.Events["PairCreated"].Inputs.Pack(t0, t1, pair, big.NewInt(0))
+	pairLogHandler(types.Log{Topics: []common.Hash{pairEventID, common.BytesToHash(t0.Bytes()), common.BytesToHash(t1.Bytes())}, Data: data})
+
+	if len(stub.tokens) != 2 || len(stub.pools) != 1 {
+		t.Fatalf("unexpected registry calls: %v %v", stub.tokens, stub.pools)
+	}
+
+	// sending the same event again should not trigger new txs
+	pairLogHandler(types.Log{Topics: []common.Hash{pairEventID, common.BytesToHash(t0.Bytes()), common.BytesToHash(t1.Bytes())}, Data: data})
+	if len(stub.tokens) != 2 || len(stub.pools) != 1 {
+		t.Fatalf("duplicate registry calls: %v %v", stub.tokens, stub.pools)
+	}
+}
+
 type stubRegistry struct {
 	tokens []common.Address
 	pools  [][3]common.Address
