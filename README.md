@@ -41,7 +41,9 @@ This project explores building a MEV bot targeting decentralized exchanges on Ar
    `"addr1,addr2;addr3,addr4"`.
    Set `FACTORIES` to a comma separated list of factory addresses to
    automatically capture `PairCreated` and `PoolCreated` events and grow the
-   set of pools scanned for opportunities.
+   set of pools scanned for opportunities. When `REGISTRY_ADDRESS` and
+   `PRIVATE_KEY` are also configured, each discovered pool and its tokens are
+   registered on-chain automatically so the registry stays up to date.
 6. Deploy contracts using `make deploy`. By default this deploys the
    `Registry` contract with `forge create`.  Pass `CONTRACT=path:Name` to
    deploy a different contract.  `RPC_URL` and `PRIVATE_KEY` must be set in
@@ -52,8 +54,13 @@ This project explores building a MEV bot targeting decentralized exchanges on Ar
    your `PATH` with:
 
    ```bash
-   go install github.com/ethereum/go-ethereum/cmd/abigen@latest
-   ```
+  go install github.com/ethereum/go-ethereum/cmd/abigen@latest
+  ```
+
+8. Interact with the on-chain registry using `make registry-cli`. Pass
+   commands such as `ARGS="tokens"` or `ARGS="add-token 0x..."`. The tool
+   uses the same `RPC_URL`, `REGISTRY_ADDRESS`, and `PRIVATE_KEY`
+   environment variables as the bot.
 
 The repo now includes a `Registry` contract that stores token, exchange and pool metadata using library based diamond storage. It forms the on-chain
 configuration for the bot and demonstrates how components remain modular.
