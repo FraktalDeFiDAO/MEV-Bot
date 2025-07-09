@@ -1,6 +1,8 @@
 package registry
 
 import (
+	"context"
+	"math/big"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -9,8 +11,29 @@ import (
 )
 
 type stubContract struct {
-	method string
-	params []interface{}
+	method  string
+	params  []interface{}
+	callRes interface{}
+}
+
+func (s *stubContract) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
+	s.method = method
+	s.params = params
+	switch v := s.callRes.(type) {
+	case []common.Address:
+		for _, a := range v {
+			*result = append(*result, a)
+		}
+	case struct {
+		Token0     common.Address
+		Token1     common.Address
+		ExchangeID *big.Int
+		Enabled    bool
+	}:
+		*result = append(*result, v.Token0, v.Token1, v.ExchangeID, v.Enabled)
+	}
+	return nil
+
 }
 
 func (s *stubContract) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
@@ -44,5 +67,35 @@ func TestAddPool(t *testing.T) {
 	}
 	if len(st.params) != 4 {
 		t.Fatalf("wrong params %v", st.params)
+	}
+}
+
+func TestTokens(t *testing.T) {
+	st := &stubContract{callRes: []common.Address{common.HexToAddress("0x1")}}
+	c := &Client{c: st, callCtx: &bind.CallOpts{}}
+	toks, err := c.Tokens(context.Background())
+	if err != nil || len(toks) != 1 || toks[0] != common.HexToAddress("0x1") {
+		t.Fatalf("unexpected tokens %v %v", toks, err)
+	}
+	if st.method != "getTokens" {
+		t.Fatalf("wrong method %s", st.method)
+	}
+}
+
+func TestPoolInfo(t *testing.T) {
+	out := struct {
+		Token0     common.Address
+		Token1     common.Address
+		ExchangeID *big.Int
+		Enabled    bool
+	}{common.HexToAddress("0x1"), common.HexToAddress("0x2"), big.NewInt(1), true}
+	st := &stubContract{callRes: out}
+	c := &Client{c: st, callCtx: &bind.CallOpts{}}
+	info, err := c.PoolInfo(context.Background(), common.HexToAddress("0xabc"))
+	if err != nil || info.Token0 != out.Token0 || info.Token1 != out.Token1 {
+		t.Fatalf("unexpected info %+v %v", info, err)
+	}
+	if st.method != "getPool" {
+		t.Fatalf("wrong method %s", st.method)
 	}
 }

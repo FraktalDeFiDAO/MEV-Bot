@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/market"
+	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/registry"
 	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/watcher"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
@@ -152,6 +153,26 @@ func (s *stubRegistry) AddPool(a, b, c common.Address, id uint64) (*types.Transa
 func (s *stubRegistry) AddToken(t common.Address, d uint8) (*types.Transaction, error) {
 	s.tokens = append(s.tokens, t)
 	return new(types.Transaction), nil
+}
+
+func (s *stubRegistry) Tokens(context.Context) ([]common.Address, error) {
+	return s.tokens, nil
+}
+
+func (s *stubRegistry) Pools(context.Context) ([]common.Address, error) {
+	var res []common.Address
+	for _, p := range s.pools {
+		res = append(res, p[0])
+	}
+	return res, nil
+}
+
+func (s *stubRegistry) PoolInfo(ctx context.Context, a common.Address) (registry.PoolInfo, error) {
+	if len(s.pools) == 0 {
+		return registry.PoolInfo{}, nil
+	}
+	p := s.pools[0]
+	return registry.PoolInfo{Token0: p[1], Token1: p[2], ExchangeID: big.NewInt(0), Enabled: true}, nil
 }
 
 func TestSyncRegistry(t *testing.T) {

@@ -54,6 +54,7 @@ This project explores building a MEV bot targeting decentralized exchanges on Ar
    ```bash
    go install github.com/ethereum/go-ethereum/cmd/abigen@latest
 
+
 The repo now includes a `Registry` contract that stores token, exchange and pool metadata using library based diamond storage. It forms the on-chain
 configuration for the bot and demonstrates how components remain modular.
 The registry exposes helper getters like `getTokenCount`, `getExchangeCount` and
@@ -105,6 +106,11 @@ A lightweight Vue 3 front end scaffold lives in `web/`. It uses Vite,
 Tailwind, Pinia, Viem, and Vue Router to visualize saved tokens and pools.
 Install dependencies with `make web-install` and run `make web-dev` to launch
 the UI.  Build the production bundle with `make web-build`.
+
+The Go bot exposes a small HTTP API on port `8080` that the frontend uses. It
+provides `GET /tokens` and `GET /pools` to list the current market as well as
+`POST /tokens` and `POST /pools` to add new entries which are also registered
+on-chain when a registry address and key are configured.
 
 A sample `.env.sample` file is provided containing environment variables used by
 the Go bot, such as `RPC_URL` and `PRIVATE_KEY`. Copy it to `.env` and adjust the

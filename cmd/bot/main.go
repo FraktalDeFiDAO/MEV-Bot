@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"crypto/ecdsa"
+	"encoding/json"
 	"log"
 	"math/big"
+	"net/http"
 	"os"
 	"strings"
 
@@ -28,6 +30,9 @@ type runner interface{ Run(context.Context) error }
 type registryClient interface {
 	AddPool(common.Address, common.Address, common.Address, uint64) (*types.Transaction, error)
 	AddToken(common.Address, uint8) (*types.Transaction, error)
+	Tokens(context.Context) ([]common.Address, error)
+	Pools(context.Context) ([]common.Address, error)
+	PoolInfo(context.Context, common.Address) (registry.PoolInfo, error)
 }
 
 // connectClient abstracts ethutil.ConnectClient for testability.
@@ -111,6 +116,9 @@ func run(ctx context.Context, rpcURL, regAddr, keyHex string) error {
 		}
 	}
 
+	if regClient != nil {
+		loadRegistry(ctx)
+	}
 	syncRegistry()
 
 	bw := newBlockWatcher(client)
@@ -168,6 +176,8 @@ func run(ctx context.Context, rpcURL, regAddr, keyHex string) error {
 		}()
 	}
 
+	startServer(":8080")
+
 	<-ctx.Done()
 	return ctx.Err()
 }
@@ -189,6 +199,32 @@ func syncRegistry() {
 		if _, err := regClient.AddPool(p.Address, p.Token0, p.Token1, 0); err != nil {
 			log.Printf("registry sync pool error: %v", err)
 		}
+	}
+}
+
+// loadRegistry fetches tokens and pools from the on-chain registry.
+func loadRegistry(ctx context.Context) {
+	if regClient == nil || marketStore == nil {
+		return
+	}
+	toks, err := regClient.Tokens(ctx)
+	if err == nil {
+		for _, t := range toks {
+			marketStore.AddToken(t)
+		}
+	} else {
+		log.Printf("registry token load error: %v", err)
+	}
+	pools, err := regClient.Pools(ctx)
+	if err == nil {
+		for _, p := range pools {
+			info, err := regClient.PoolInfo(ctx, p)
+			if err == nil {
+				marketStore.AddPool(p, info.Token0, info.Token1)
+			}
+		}
+	} else {
+		log.Printf("registry pool load error: %v", err)
 	}
 }
 
@@ -294,6 +330,73 @@ func pairLogHandler(l types.Log) {
 		}
 	}
 }
+
+func startServer(addr string) {
+	http.HandleFunc("/tokens", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		if marketStore == nil {
+			http.Error(w, "no store", http.StatusInternalServerError)
+			return
+		}
+		switch r.Method {
+		case http.MethodGet:
+			json.NewEncoder(w).Encode(marketStore.ListTokens())
+		case http.MethodPost:
+			var in struct {
+				Address string `json:"address"`
+			}
+			if json.NewDecoder(r.Body).Decode(&in) == nil {
+				addr := common.HexToAddress(in.Address)
+				marketStore.AddToken(addr)
+				if regClient != nil {
+					regClient.AddToken(addr, 18)
+				}
+			}
+			w.WriteHeader(http.StatusOK)
+		default:
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
+	})
+
+	http.HandleFunc("/pools", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		if marketStore == nil {
+			http.Error(w, "no store", http.StatusInternalServerError)
+			return
+		}
+		switch r.Method {
+		case http.MethodGet:
+			json.NewEncoder(w).Encode(marketStore.ListPools())
+		case http.MethodPost:
+			var in struct {
+				Address string `json:"address"`
+				Token0  string `json:"token0"`
+				Token1  string `json:"token1"`
+			}
+			if json.NewDecoder(r.Body).Decode(&in) == nil {
+				p := common.HexToAddress(in.Address)
+				t0 := common.HexToAddress(in.Token0)
+				t1 := common.HexToAddress(in.Token1)
+				marketStore.AddPool(p, t0, t1)
+				if regClient != nil {
+					regClient.AddToken(t0, 18)
+					regClient.AddToken(t1, 18)
+					regClient.AddPool(p, t0, t1, 0)
+				}
+			}
+			w.WriteHeader(http.StatusOK)
+		default:
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
+	})
+
+	go func() {
+		if err := http.ListenAndServe(addr, nil); err != nil {
+			log.Printf("api server error: %v", err)
+		}
+	}()
+}
+
 
 func main() {
 	// load environment variables from .env if present
