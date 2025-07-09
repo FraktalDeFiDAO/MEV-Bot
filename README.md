@@ -58,8 +58,25 @@ This project explores building a MEV bot targeting decentralized exchanges on Ar
    installed the script simply skips generation. To install it run:
 
    ```bash
-   go install github.com/ethereum/go-ethereum/cmd/abigen@latest
-   ```
+  go install github.com/ethereum/go-ethereum/cmd/abigen@latest
+  ```
+
+8. Interact with the on-chain registry using `make registry-cli`. Pass
+   commands such as `ARGS="tokens"`, `ARGS="add-token 0x..."`, or
+   `ARGS="add-pool 0x..."`. When only a pool address is supplied the CLI
+   queries the pool for its tokens and registers everything automatically.
+   The tool uses the same `RPC_URL`, `REGISTRY_ADDRESS`, and `PRIVATE_KEY`
+
+   environment variables as the bot.
+
+````
+
+8. Interact with the on-chain registry using `make registry-cli`. Pass
+ commands such as `ARGS="tokens"`, `ARGS="add-token 0x..."`, or
+ `ARGS="add-pool 0x..."`. When only a pool address is supplied the CLI
+ queries the pool for its tokens and registers everything automatically.
+ The tool uses the same `RPC_URL`, `REGISTRY_ADDRESS`, and `PRIVATE_KEY`
+ environment variables as the bot.
 
 ````
 
