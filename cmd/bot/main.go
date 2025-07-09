@@ -69,6 +69,7 @@ func init() {
 		panic(err)
 	}
 	poolEventID = crypto.Keccak256Hash([]byte("PoolCreated(address,address,uint24,int24,address)"))
+
 }
 
 // Entry point for the MEV bot. Connects to an Arbitrum node and listens for events.
