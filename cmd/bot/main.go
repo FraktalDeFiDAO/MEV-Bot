@@ -310,35 +310,39 @@ func profitLogHandler(l types.Log) {
 
 // recordPool caches the given pool and tokens and updates the registry if needed.
 func recordPool(pool, token0, token1 common.Address) {
-	if regClient != nil {
-		if _, ok := knownTokens[token0]; !ok {
-			tx, err := regClient.AddToken(token0, 18)
-			if err != nil {
-				log.Printf("registry token0 error: %v", err)
-				return
-			}
-			log.Printf("registry add token %s tx=%s", token0.Hex(), tx.Hash().Hex())
-			knownTokens[token0] = struct{}{}
-		}
-		if _, ok := knownTokens[token1]; !ok {
-			tx, err := regClient.AddToken(token1, 18)
-			if err != nil {
-				log.Printf("registry token1 error: %v", err)
-				return
-			}
-			log.Printf("registry add token %s tx=%s", token1.Hex(), tx.Hash().Hex())
-			knownTokens[token1] = struct{}{}
-		}
-		if _, ok := knownPools[pool]; !ok {
-			tx, err := regClient.AddPool(pool, token0, token1, 0)
-			if err != nil {
-				log.Printf("registry pool error: %v", err)
-				return
-			}
-			log.Printf("registry add pool %s tx=%s", pool.Hex(), tx.Hash().Hex())
-			knownPools[pool] = struct{}{}
-		}
+	if regClient == nil {
+		// pools should only be cached once registered on-chain
+		return
 	}
+
+	if _, ok := knownTokens[token0]; !ok {
+		tx, err := regClient.AddToken(token0, 18)
+		if err != nil {
+			log.Printf("registry token0 error: %v", err)
+			return
+		}
+		log.Printf("registry add token %s tx=%s", token0.Hex(), tx.Hash().Hex())
+		knownTokens[token0] = struct{}{}
+	}
+	if _, ok := knownTokens[token1]; !ok {
+		tx, err := regClient.AddToken(token1, 18)
+		if err != nil {
+			log.Printf("registry token1 error: %v", err)
+			return
+		}
+		log.Printf("registry add token %s tx=%s", token1.Hex(), tx.Hash().Hex())
+		knownTokens[token1] = struct{}{}
+	}
+	if _, ok := knownPools[pool]; !ok {
+		tx, err := regClient.AddPool(pool, token0, token1, 0)
+		if err != nil {
+			log.Printf("registry pool error: %v", err)
+			return
+		}
+		log.Printf("registry add pool %s tx=%s", pool.Hex(), tx.Hash().Hex())
+		knownPools[pool] = struct{}{}
+	}
+
 	if marketStore != nil {
 		if !marketStore.HasToken(token0) {
 			marketStore.AddToken(token0)
@@ -349,6 +353,25 @@ func recordPool(pool, token0, token1 common.Address) {
 		if !marketStore.Has(pool) {
 			marketStore.AddPool(pool, token0, token1)
 		}
+	}
+}
+
+// recordToken registers a single token and caches it once confirmed.
+func recordToken(token common.Address) {
+	if regClient == nil {
+		return
+	}
+	if _, ok := knownTokens[token]; !ok {
+		tx, err := regClient.AddToken(token, 18)
+		if err != nil {
+			log.Printf("registry token error: %v", err)
+			return
+		}
+		log.Printf("registry add token %s tx=%s", token.Hex(), tx.Hash().Hex())
+		knownTokens[token] = struct{}{}
+	}
+	if marketStore != nil && !marketStore.HasToken(token) {
+		marketStore.AddToken(token)
 	}
 }
 
@@ -412,17 +435,7 @@ func startServer(addr string) {
 			}
 			if json.NewDecoder(r.Body).Decode(&in) == nil {
 				addr := common.HexToAddress(in.Address)
-				marketStore.AddToken(addr)
-				if regClient != nil {
-					if _, ok := knownTokens[addr]; !ok {
-						if tx, err := regClient.AddToken(addr, 18); err == nil {
-							log.Printf("registry add token %s tx=%s", addr.Hex(), tx.Hash().Hex())
-							knownTokens[addr] = struct{}{}
-						} else {
-							log.Printf("registry token error: %v", err)
-						}
-					}
-				}
+				recordToken(addr)
 			}
 			w.WriteHeader(http.StatusOK)
 		default:
