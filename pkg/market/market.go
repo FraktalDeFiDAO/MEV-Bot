@@ -106,3 +106,16 @@ func (m *Market) ListTokens() []common.Address {
 	m.mu.RUnlock()
 	return res
 }
+
+// PoolsForTokens returns pools that trade the given token pair.
+func (m *Market) PoolsForTokens(t0, t1 common.Address) []common.Address {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	var res []common.Address
+	for addr, p := range m.pools {
+		if (p.Token0 == t0 && p.Token1 == t1) || (p.Token0 == t1 && p.Token1 == t0) {
+			res = append(res, addr)
+		}
+	}
+	return res
+}

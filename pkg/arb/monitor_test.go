@@ -29,3 +29,11 @@ func TestMonitorDetects(t *testing.T) {
 		t.Fatalf("expected log message")
 	}
 }
+
+func TestAddPair(t *testing.T) {
+	m := NewMonitor(nil, 10, 1)
+	m.AddPair(common.HexToAddress("0x1"), common.HexToAddress("0x2"))
+	if len(m.pairs) != 1 {
+		t.Fatalf("pair not added")
+	}
+}
