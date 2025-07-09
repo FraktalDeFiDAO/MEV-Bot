@@ -199,6 +199,7 @@ func syncRegistry() {
 
 	ctx := context.Background()
 
+
 	onchainTokens, err := regClient.Tokens(ctx)
 	if err != nil {
 		log.Printf("registry token query error: %v", err)
