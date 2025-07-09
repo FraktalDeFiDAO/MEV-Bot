@@ -8,7 +8,7 @@ import (
 )
 
 func TestLoadAndSave(t *testing.T) {
-	f := "test_market.json"
+	f := "test_market.db"
 	defer os.Remove(f)
 	pm := LoadFromFile(f)
 	if len(pm.List()) != 0 {
