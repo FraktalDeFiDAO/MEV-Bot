@@ -310,6 +310,35 @@ func profitLogHandler(l types.Log) {
 
 // recordPool caches the given pool and tokens and updates the registry if needed.
 func recordPool(pool, token0, token1 common.Address) {
+	if regClient != nil {
+		if _, ok := knownTokens[token0]; !ok {
+			tx, err := regClient.AddToken(token0, 18)
+			if err != nil {
+				log.Printf("registry token0 error: %v", err)
+				return
+			}
+			log.Printf("registry add token %s tx=%s", token0.Hex(), tx.Hash().Hex())
+			knownTokens[token0] = struct{}{}
+		}
+		if _, ok := knownTokens[token1]; !ok {
+			tx, err := regClient.AddToken(token1, 18)
+			if err != nil {
+				log.Printf("registry token1 error: %v", err)
+				return
+			}
+			log.Printf("registry add token %s tx=%s", token1.Hex(), tx.Hash().Hex())
+			knownTokens[token1] = struct{}{}
+		}
+		if _, ok := knownPools[pool]; !ok {
+			tx, err := regClient.AddPool(pool, token0, token1, 0)
+			if err != nil {
+				log.Printf("registry pool error: %v", err)
+				return
+			}
+			log.Printf("registry add pool %s tx=%s", pool.Hex(), tx.Hash().Hex())
+			knownPools[pool] = struct{}{}
+		}
+	}
 	if marketStore != nil {
 		if !marketStore.HasToken(token0) {
 			marketStore.AddToken(token0)
@@ -319,32 +348,6 @@ func recordPool(pool, token0, token1 common.Address) {
 		}
 		if !marketStore.Has(pool) {
 			marketStore.AddPool(pool, token0, token1)
-		}
-	}
-	if regClient != nil {
-		if _, ok := knownTokens[token0]; !ok {
-			if tx, err := regClient.AddToken(token0, 18); err != nil {
-				log.Printf("registry token0 error: %v", err)
-			} else {
-				log.Printf("registry add token %s tx=%s", token0.Hex(), tx.Hash().Hex())
-				knownTokens[token0] = struct{}{}
-			}
-		}
-		if _, ok := knownTokens[token1]; !ok {
-			if tx, err := regClient.AddToken(token1, 18); err != nil {
-				log.Printf("registry token1 error: %v", err)
-			} else {
-				log.Printf("registry add token %s tx=%s", token1.Hex(), tx.Hash().Hex())
-				knownTokens[token1] = struct{}{}
-			}
-		}
-		if _, ok := knownPools[pool]; !ok {
-			if tx, err := regClient.AddPool(pool, token0, token1, 0); err != nil {
-				log.Printf("registry pool error: %v", err)
-			} else {
-				log.Printf("registry add pool %s tx=%s", pool.Hex(), tx.Hash().Hex())
-				knownPools[pool] = struct{}{}
-			}
 		}
 	}
 }
@@ -474,7 +477,7 @@ func main() {
 
 	cachePath := os.Getenv("MARKET_CACHE")
 	if cachePath == "" {
-		cachePath = "market.json"
+		cachePath = "market.db"
 	}
 	marketStore = market.LoadFromFile(cachePath)
 	knownTokens = make(map[common.Address]struct{})

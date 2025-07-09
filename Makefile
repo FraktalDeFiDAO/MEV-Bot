@@ -13,7 +13,7 @@ go-test:
 
 test: solidity-test go-test
 
-build:
+build: generate-bindings
 >go build ./cmd/bot
 
 docker:
@@ -22,7 +22,7 @@ docker:
 run: build
 >./bot
 
-run-dev:
+run-dev: generate-bindings
 >go run ./cmd/bot
 
 registry-cli:
