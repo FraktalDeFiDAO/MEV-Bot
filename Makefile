@@ -1,3 +1,6 @@
+include .env
+export
+
 .RECIPEPREFIX := >
 .PHONY: test solidity-test go-test build docker run run-dev debug registry-cli deploy clean generate-bindings web-install web-build web-dev
 
@@ -33,7 +36,10 @@ registry-cli:
 >go run ./cmd/registry $(ARGS)
 
 deploy:
->forge create $(CONTRACT) --rpc-url $(RPC_URL) --private-key $(PRIVATE_KEY)
+>forge create $(CONTRACT) -\
+	-rpc-url $(RPC_URL) \
+	--private-key $(PRIVATE_KEY) \
+	--broadcast
 
 generate-bindings:
 >scripts/generate_bindings.sh
