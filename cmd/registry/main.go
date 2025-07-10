@@ -1,3 +1,6 @@
+// Command registry exposes a simple CLI for interacting with the on-chain
+// registry contract. It supports listing tokens and pools as well as adding
+// new tokens or pools.
 package main
 
 import (

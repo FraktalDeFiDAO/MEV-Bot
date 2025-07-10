@@ -85,7 +85,7 @@ web_modules/
 
 # Next.js build output
 .next
-out
+web/out
 
 # Nuxt.js build / generate output
 .nuxt
@@ -130,7 +130,9 @@ dist
 .pnp.*
 
 # Foundry build artifacts
-out/
+out/*
+!out/**/
+!out/**/*.json
 cache/
 lib/
 coverage.out
