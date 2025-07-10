@@ -36,7 +36,7 @@ registry-cli:
 >go run ./cmd/registry $(ARGS)
 
 deploy:
->forge create $(CONTRACT) -\
+>forge create $(CONTRACT) \
 	--rpc-url $(RPC_URL) \
 	--private-key $(PRIVATE_KEY) \
 	--broadcast
