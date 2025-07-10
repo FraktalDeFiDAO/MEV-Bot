@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"time"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -29,25 +30,31 @@ func NewBlockWatcher(sub HeaderSubscriber) *BlockWatcher {
 func (bw *BlockWatcher) Run(ctx context.Context) error {
 	log.Println("block watcher starting")
 	headers := make(chan *types.Header)
-	sub, err := bw.sub.SubscribeNewHead(ctx, headers)
-	if err != nil {
-		return err
-	}
-	defer sub.Unsubscribe()
-
 	defer log.Println("block watcher stopped")
 
 	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case err := <-sub.Err():
-			if err != nil {
-				return err
-			}
-		case h := <-headers:
-			if bw.verbose {
-				log.Printf("new block: %d", h.Number.Uint64())
+		sub, err := bw.sub.SubscribeNewHead(ctx, headers)
+		if err != nil {
+			return err
+		}
+
+	inner:
+		for {
+			select {
+			case <-ctx.Done():
+				sub.Unsubscribe()
+				return ctx.Err()
+			case err := <-sub.Err():
+				if err != nil {
+					log.Printf("block subscription error: %v", err)
+				}
+				sub.Unsubscribe()
+				time.Sleep(time.Second)
+				break inner
+			case h := <-headers:
+				if bw.verbose {
+					log.Printf("new block: %d", h.Number.Uint64())
+				}
 			}
 		}
 	}
@@ -77,26 +84,33 @@ func NewEventWatcher(sub LogSubscriber, q ethereum.FilterQuery, h LogHandler) *E
 func (ew *EventWatcher) Run(ctx context.Context) error {
 	log.Println("event watcher starting")
 	logsCh := make(chan types.Log)
-	sub, err := ew.sub.SubscribeFilterLogs(ctx, ew.query, logsCh)
-	if err != nil {
-		return err
-	}
-	defer sub.Unsubscribe()
 	defer log.Println("event watcher stopped")
 
 	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case err := <-sub.Err():
-			if err != nil {
-				return err
-			}
-		case l := <-logsCh:
-			if ew.handler != nil {
-				ew.handler(l)
-			} else {
-				log.Printf("log tx: %s", l.TxHash.Hex())
+		sub, err := ew.sub.SubscribeFilterLogs(ctx, ew.query, logsCh)
+		if err != nil {
+			return err
+		}
+
+	inner:
+		for {
+			select {
+			case <-ctx.Done():
+				sub.Unsubscribe()
+				return ctx.Err()
+			case err := <-sub.Err():
+				if err != nil {
+					log.Printf("log subscription error: %v", err)
+				}
+				sub.Unsubscribe()
+				time.Sleep(time.Second)
+				break inner
+			case l := <-logsCh:
+				if ew.handler != nil {
+					ew.handler(l)
+				} else {
+					log.Printf("log tx: %s", l.TxHash.Hex())
+				}
 			}
 		}
 	}
