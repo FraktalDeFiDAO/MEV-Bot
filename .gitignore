@@ -133,4 +133,9 @@ dist
 out/
 cache/
 lib/
+coverage.out
 .gitmodules
+/bot
+cmd/bot/bindings/
+web/node_modules/
+web/dist/

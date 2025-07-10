@@ -3,3 +3,7 @@
 out
 cache
 lib/
+coverage.out
+cmd/bot/bindings/
+web/node_modules/
+web/dist/

@@ -124,6 +124,9 @@ type SyncProgress struct {
 	// "transaction indexing" fields
 	TxIndexFinishedBlocks  uint64 // Number of blocks whose transactions are already indexed
 	TxIndexRemainingBlocks uint64 // Number of blocks whose transactions are not indexed yet
+
+	// "historical state indexing" fields
+	StateIndexRemaining uint64 // Number of states remain unindexed
 }
 
 // Done returns the indicator if the initial sync is finished or not.
@@ -131,7 +134,7 @@ func (prog SyncProgress) Done() bool {
 	if prog.CurrentBlock < prog.HighestBlock {
 		return false
 	}
-	return prog.TxIndexRemainingBlocks == 0
+	return prog.TxIndexRemainingBlocks == 0 && prog.StateIndexRemaining == 0
 }
 
 // ChainSyncReader wraps access to the node's current sync status. If there's no
@@ -152,6 +155,13 @@ type CallMsg struct {
 	Data      []byte          // input data, usually an ABI-encoded contract method invocation
 
 	AccessList types.AccessList // EIP-2930 access list.
+
+	// For BlobTxType
+	BlobGasFeeCap *big.Int
+	BlobHashes    []common.Hash
+
+	// For SetCodeTxType
+	AuthorizationList []types.SetCodeAuthorization
 }
 
 // A ContractCaller provides contract calls, essentially transactions that are executed by

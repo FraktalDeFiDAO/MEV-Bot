@@ -1,15 +1,15 @@
 package watcher
 
 import (
-        "context"
-        "errors"
-        "math/big"
-        "testing"
-        "time"
+	"context"
+	"errors"
+	"math/big"
+	"testing"
+	"time"
 
-        "github.com/ethereum/go-ethereum"
-        "github.com/ethereum/go-ethereum/common"
-        "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 )
 
 type errSubscriber struct{ err error }
@@ -38,19 +38,41 @@ func (goodSubscriber) SubscribeNewHead(ctx context.Context, ch chan<- *types.Hea
 type errLogSubscriber struct{ err error }
 
 func (e errLogSubscriber) SubscribeFilterLogs(ctx context.Context, q ethereum.FilterQuery, ch chan<- types.Log) (ethereum.Subscription, error) {
-        return nil, e.err
+	return nil, e.err
 }
 
 type goodLogSubscriber struct{}
 
 func (goodLogSubscriber) SubscribeFilterLogs(ctx context.Context, q ethereum.FilterQuery, ch chan<- types.Log) (ethereum.Subscription, error) {
-        sub := stubSub{errCh: make(chan error)}
-        go func() {
-                ch <- types.Log{TxHash: common.HexToHash("0x1")}
-                time.Sleep(10 * time.Millisecond)
-                close(sub.errCh)
-        }()
-        return sub, nil
+	sub := stubSub{errCh: make(chan error)}
+	go func() {
+		ch <- types.Log{TxHash: common.HexToHash("0x1")}
+		time.Sleep(10 * time.Millisecond)
+		close(sub.errCh)
+	}()
+	return sub, nil
+}
+
+type errAfterSubscriber struct{}
+
+func (errAfterSubscriber) SubscribeNewHead(ctx context.Context, ch chan<- *types.Header) (ethereum.Subscription, error) {
+	sub := stubSub{errCh: make(chan error, 1)}
+	go func() {
+		ch <- &types.Header{Number: big.NewInt(1)}
+		sub.errCh <- errors.New("boom")
+	}()
+	return sub, nil
+}
+
+type errAfterLogSubscriber struct{}
+
+func (errAfterLogSubscriber) SubscribeFilterLogs(ctx context.Context, q ethereum.FilterQuery, ch chan<- types.Log) (ethereum.Subscription, error) {
+	sub := stubSub{errCh: make(chan error, 1)}
+	go func() {
+		ch <- types.Log{TxHash: common.HexToHash("0x2")}
+		sub.errCh <- errors.New("boom")
+	}()
+	return sub, nil
 }
 
 func TestBlockWatcherSubscribeError(t *testing.T) {
@@ -61,32 +83,61 @@ func TestBlockWatcherSubscribeError(t *testing.T) {
 }
 
 func TestBlockWatcherRun(t *testing.T) {
-        ctx, cancel := context.WithCancel(context.Background())
-        bw := NewBlockWatcher(goodSubscriber{})
-        go func() {
-                time.Sleep(50 * time.Millisecond)
-                cancel()
-        }()
-        if err := bw.Run(ctx); err != context.Canceled {
-                t.Fatalf("unexpected error: %v", err)
-        }
+	ctx, cancel := context.WithCancel(context.Background())
+	bw := NewBlockWatcher(goodSubscriber{})
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+		cancel()
+	}()
+	if err := bw.Run(ctx); err != context.Canceled {
+		t.Fatalf("unexpected error: %v", err)
+	}
 }
 
 func TestEventWatcherSubscribeError(t *testing.T) {
-        ew := NewEventWatcher(errLogSubscriber{err: errors.New("boom")}, ethereum.FilterQuery{})
-        if err := ew.Run(context.Background()); err == nil {
-                t.Fatal("expected error")
-        }
+	ew := NewEventWatcher(errLogSubscriber{err: errors.New("boom")}, ethereum.FilterQuery{}, nil)
+	if err := ew.Run(context.Background()); err == nil {
+		t.Fatal("expected error")
+	}
 }
 
 func TestEventWatcherRun(t *testing.T) {
-        ctx, cancel := context.WithCancel(context.Background())
-        ew := NewEventWatcher(goodLogSubscriber{}, ethereum.FilterQuery{})
-        go func() {
-                time.Sleep(50 * time.Millisecond)
-                cancel()
-        }()
-        if err := ew.Run(ctx); err != context.Canceled {
-                t.Fatalf("unexpected error: %v", err)
-        }
+	ctx, cancel := context.WithCancel(context.Background())
+	called := false
+	handler := func(types.Log) { called = true }
+	ew := NewEventWatcher(goodLogSubscriber{}, ethereum.FilterQuery{}, handler)
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+		cancel()
+	}()
+	if err := ew.Run(ctx); err != context.Canceled {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !called {
+		t.Fatalf("handler not called")
+	}
+}
+
+func TestBlockWatcherSubscriptionError(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	bw := NewBlockWatcher(errAfterSubscriber{})
+	go func() {
+		time.Sleep(20 * time.Millisecond)
+		cancel()
+	}()
+	if err := bw.Run(ctx); err != context.Canceled {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestEventWatcherSubscriptionError(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	ew := NewEventWatcher(errAfterLogSubscriber{}, ethereum.FilterQuery{}, nil)
+	go func() {
+		time.Sleep(20 * time.Millisecond)
+		cancel()
+	}()
+	if err := ew.Run(ctx); err != context.Canceled {
+		t.Fatalf("unexpected error: %v", err)
+	}
 }
