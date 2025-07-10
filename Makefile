@@ -1,6 +1,7 @@
 .RECIPEPREFIX := >
 .PHONY: test solidity-test go-test build docker run run-dev debug registry-cli deploy clean generate-bindings web-install web-build web-dev
 
+
 CONTRACT ?= contracts/Registry.sol:Registry
 
 solidity-test:
@@ -42,10 +43,10 @@ clean:
 >rm -rf out cache
 
 web-install:
->npm install --prefix web
+>pnpm install
 
 web-build:
->npm run build --prefix web
+>pnpm run build
 
 web-dev:
->npm run dev --prefix web
+>pnpm run dev
