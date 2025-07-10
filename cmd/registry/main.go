@@ -12,9 +12,24 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
+
+var (
+	dialRPC     = ethclient.DialContext
+	newRegistry = registry.New
+)
+
+type registryClient interface {
+	AddPool(common.Address, common.Address, common.Address, uint64) (*types.Transaction, error)
+	AddToken(common.Address, uint8) (*types.Transaction, error)
+	WaitMined(context.Context, *types.Transaction) (*types.Receipt, error)
+	Tokens(context.Context) ([]common.Address, error)
+	Pools(context.Context) ([]common.Address, error)
+	PoolInfo(context.Context, common.Address) (registry.PoolInfo, error)
+}
 
 func usage() {
 	fmt.Println("Usage:")
@@ -37,7 +52,7 @@ func connect(ctx context.Context) (*registry.Client, *ethclient.Client, error) {
 	if regAddr == "" || keyHex == "" {
 		return nil, nil, fmt.Errorf("REGISTRY_ADDRESS and PRIVATE_KEY must be set")
 	}
-	rpc, err := ethclient.DialContext(ctx, rpcURL)
+	rpc, err := dialRPC(ctx, rpcURL)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -45,35 +60,31 @@ func connect(ctx context.Context) (*registry.Client, *ethclient.Client, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	client, err := registry.New(ctx, common.HexToAddress(regAddr), rpc, key)
+	client, err := newRegistry(ctx, common.HexToAddress(regAddr), rpc, key)
 	if err != nil {
 		return nil, nil, err
 	}
 	return client, rpc, nil
 }
 
-func main() {
-	if len(os.Args) < 2 {
-		usage()
+func handle(ctx context.Context, client registryClient, rpc *ethclient.Client, args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("missing command")
 	}
-	ctx := context.Background()
-	client, rpc, err := connect(ctx)
-	if err != nil {
-		log.Fatalf("connect: %v", err)
-	}
-	switch os.Args[1] {
+	switch args[0] {
 	case "tokens":
 		toks, err := client.Tokens(ctx)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 		for _, t := range toks {
 			fmt.Println(t.Hex())
 		}
+		return nil
 	case "pools":
 		pools, err := client.Pools(ctx)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 		for _, p := range pools {
 			info, err := client.PoolInfo(ctx, p)
@@ -83,34 +94,36 @@ func main() {
 			}
 			fmt.Printf("%s %s %s %s\n", p.Hex(), info.Token0.Hex(), info.Token1.Hex(), info.ExchangeID.String())
 		}
+		return nil
 	case "add-token":
-		if len(os.Args) < 3 {
-			usage()
+		if len(args) < 2 {
+			return fmt.Errorf("add-token requires address")
 		}
-		addr := common.HexToAddress(os.Args[2])
+		addr := common.HexToAddress(args[1])
 		dec := uint8(18)
-		if len(os.Args) > 3 {
-			if v, err := strconv.Atoi(os.Args[3]); err == nil {
+		if len(args) > 2 {
+			if v, err := strconv.Atoi(args[2]); err == nil {
 				dec = uint8(v)
 			}
 		}
 		tx, err := client.AddToken(addr, dec)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 		fmt.Println(tx.Hash().Hex())
+		return nil
 	case "add-pool":
-		if len(os.Args) < 3 {
-			usage()
+		if len(args) < 2 {
+			return fmt.Errorf("add-pool requires pool address")
 		}
-		pool := common.HexToAddress(os.Args[2])
+		pool := common.HexToAddress(args[1])
 		var t0, t1 common.Address
 		var id uint64
-		if len(os.Args) >= 5 {
-			t0 = common.HexToAddress(os.Args[3])
-			t1 = common.HexToAddress(os.Args[4])
-			if len(os.Args) > 5 {
-				if v, err := strconv.ParseUint(os.Args[5], 10, 64); err == nil {
+		if len(args) >= 4 {
+			t0 = common.HexToAddress(args[2])
+			t1 = common.HexToAddress(args[3])
+			if len(args) > 4 {
+				if v, err := strconv.ParseUint(args[4], 10, 64); err == nil {
 					id = v
 				}
 			}
@@ -119,10 +132,10 @@ func main() {
 			bound := bind.NewBoundContract(pool, pairABI, rpc, rpc, rpc)
 			var out0, out1 []interface{}
 			if err := bound.Call(&bind.CallOpts{Context: ctx}, &out0, "token0"); err != nil {
-				log.Fatal(err)
+				return err
 			}
 			if err := bound.Call(&bind.CallOpts{Context: ctx}, &out1, "token1"); err != nil {
-				log.Fatal(err)
+				return err
 			}
 			t0 = out0[0].(common.Address)
 			t1 = out1[0].(common.Address)
@@ -137,10 +150,26 @@ func main() {
 		}
 		tx, err = client.AddPool(pool, t0, t1, id)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 		fmt.Println(tx.Hash().Hex())
+		return nil
 	default:
+		return fmt.Errorf("unknown command %s", args[0])
+	}
+	return nil
+}
+
+func main() {
+	if len(os.Args) < 2 {
 		usage()
+	}
+	ctx := context.Background()
+	client, rpc, err := connect(ctx)
+	if err != nil {
+		log.Fatalf("connect: %v", err)
+	}
+	if err := handle(ctx, client, rpc, os.Args[1:]); err != nil {
+		log.Fatal(err)
 	}
 }

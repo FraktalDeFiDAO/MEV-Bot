@@ -2,10 +2,15 @@ package main
 
 import (
 	"context"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/registry"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 )
 
 func rpcTestServer() *httptest.Server {
@@ -52,5 +57,87 @@ func TestConnectInvalidKey(t *testing.T) {
 
 	if _, _, err := connect(context.Background()); err == nil {
 		t.Fatal("expected error for invalid key")
+	}
+}
+
+type stubClient struct {
+	tokens      []common.Address
+	pools       []common.Address
+	poolInfo    registry.PoolInfo
+	addedTokens []common.Address
+	addedPools  []struct {
+		pool common.Address
+		t0   common.Address
+		t1   common.Address
+		id   uint64
+	}
+}
+
+func (s *stubClient) AddPool(a, b, c common.Address, id uint64) (*types.Transaction, error) {
+	s.addedPools = append(s.addedPools, struct {
+		pool common.Address
+		t0   common.Address
+		t1   common.Address
+		id   uint64
+	}{a, b, c, id})
+	return types.NewTx(&types.LegacyTx{Nonce: 0}), nil
+}
+
+func (s *stubClient) AddToken(a common.Address, d uint8) (*types.Transaction, error) {
+	s.addedTokens = append(s.addedTokens, a)
+	return types.NewTx(&types.LegacyTx{Nonce: 0}), nil
+}
+
+func (s *stubClient) WaitMined(context.Context, *types.Transaction) (*types.Receipt, error) {
+	return &types.Receipt{Status: types.ReceiptStatusSuccessful}, nil
+}
+
+func (s *stubClient) Tokens(context.Context) ([]common.Address, error) { return s.tokens, nil }
+func (s *stubClient) Pools(context.Context) ([]common.Address, error)  { return s.pools, nil }
+func (s *stubClient) PoolInfo(context.Context, common.Address) (registry.PoolInfo, error) {
+	return s.poolInfo, nil
+}
+
+func TestHandleTokens(t *testing.T) {
+	c := &stubClient{tokens: []common.Address{common.HexToAddress("0x1")}}
+	if err := handle(context.Background(), c, nil, []string{"tokens"}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestHandlePools(t *testing.T) {
+	c := &stubClient{
+		pools:    []common.Address{common.HexToAddress("0x1")},
+		poolInfo: registry.PoolInfo{Token0: common.HexToAddress("0x2"), Token1: common.HexToAddress("0x3"), ExchangeID: big.NewInt(1)},
+	}
+	if err := handle(context.Background(), c, nil, []string{"pools"}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestHandleAddToken(t *testing.T) {
+	c := &stubClient{}
+	if err := handle(context.Background(), c, nil, []string{"add-token", "0x1"}); err != nil {
+		t.Fatal(err)
+	}
+	if len(c.addedTokens) != 1 || c.addedTokens[0] != common.HexToAddress("0x1") {
+		t.Fatalf("token not added: %v", c.addedTokens)
+	}
+}
+
+func TestHandleAddPool(t *testing.T) {
+	c := &stubClient{}
+	pool := common.HexToAddress("0x111")
+	t0 := common.HexToAddress("0x222")
+	t1 := common.HexToAddress("0x333")
+	if err := handle(context.Background(), c, nil, []string{"add-pool", pool.Hex(), t0.Hex(), t1.Hex(), "5"}); err != nil {
+		t.Fatal(err)
+	}
+	if len(c.addedPools) != 1 {
+		t.Fatalf("pool not added: %v", c.addedPools)
+	}
+	ap := c.addedPools[0]
+	if ap.pool != pool || ap.t0 != t0 || ap.t1 != t1 || ap.id != 5 {
+		t.Fatalf("unexpected add pool: %+v", ap)
 	}
 }
