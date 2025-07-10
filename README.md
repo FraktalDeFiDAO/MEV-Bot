@@ -96,6 +96,19 @@ This project explores building a MEV bot targeting decentralized exchanges on Ar
  The tool uses the same `RPC_URL`, `REGISTRY_ADDRESS`, and `PRIVATE_KEY`
  environment variables as the bot.
 
+````
+
+8. Interact with the on-chain registry using `make registry-cli`. Pass
+ commands such as `ARGS="tokens"`, `ARGS="add-token 0x..."`, or
+ `ARGS="add-pool 0x..."`. When only a pool address is supplied the CLI
+ queries the pool for its tokens and registers everything automatically.
+ The tool uses the same `RPC_URL`, `REGISTRY_ADDRESS`, and `PRIVATE_KEY`
+ environment variables as the bot.
+9. Debug the bot using `make debug` which launches it under the
+   [Delve](https://github.com/go-delve/delve) debugger. Install
+   `dlv` with `go install github.com/go-delve/delve/cmd/dlv@latest` if
+   it's not already available. Pass additional arguments with `ARGS`.
+
 The repo now includes a `Registry` contract that stores token, exchange and pool metadata using library based diamond storage. It forms the on-chain
 configuration for the bot and demonstrates how components remain modular.
 The registry exposes helper getters like `getTokenCount`, `getExchangeCount` and
