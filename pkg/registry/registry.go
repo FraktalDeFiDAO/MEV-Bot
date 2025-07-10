@@ -108,10 +108,10 @@ func (r *Client) PoolInfo(ctx context.Context, pool common.Address) (PoolInfo, e
 		return PoolInfo{}, nil
 	}
 	tup := raw[0].(struct {
-		Token0     common.Address
-		Token1     common.Address
-		ExchangeID *big.Int
-		Enabled    bool
+		Token0     common.Address `json:"token0"`
+		Token1     common.Address `json:"token1"`
+		ExchangeId *big.Int       `json:"exchangeId"`
+		Enabled    bool           `json:"enabled"`
 	})
-	return PoolInfo{Token0: tup.Token0, Token1: tup.Token1, ExchangeID: tup.ExchangeID, Enabled: tup.Enabled}, nil
+	return PoolInfo{Token0: tup.Token0, Token1: tup.Token1, ExchangeID: tup.ExchangeId, Enabled: tup.Enabled}, nil
 }
