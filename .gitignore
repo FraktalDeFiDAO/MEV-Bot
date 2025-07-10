@@ -136,6 +136,7 @@ lib/
 coverage.out
 .gitmodules
 /bot
-cmd/bot/bindings/
+# cmd/bot/bindings contains generated contract bindings but is committed so tests can import the package
+
 web/node_modules/
 web/dist/
