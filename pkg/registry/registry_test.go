@@ -22,13 +22,26 @@ func (s *stubContract) Call(opts *bind.CallOpts, result *[]interface{}, method s
 	switch v := s.callRes.(type) {
 	case []common.Address:
 		*result = append(*result, v)
+	case PoolInfo:
+		tup := struct {
+			Token0     common.Address `json:"token0"`
+			Token1     common.Address `json:"token1"`
+			ExchangeId *big.Int       `json:"exchangeId"`
+			Enabled    bool           `json:"enabled"`
+		}{v.Token0, v.Token1, v.ExchangeID, v.Enabled}
+		*result = append(*result, tup)
 	case struct {
-		Token0     common.Address
-		Token1     common.Address
-		ExchangeID *big.Int
-		Enabled    bool
+		Token0     common.Address `json:"token0"`
+		Token1     common.Address `json:"token1"`
+		ExchangeId *big.Int       `json:"exchangeId"`
+		Enabled    bool           `json:"enabled"`
 	}:
-		*result = append(*result, v.Token0, v.Token1, v.ExchangeID, v.Enabled)
+		*result = append(*result, struct {
+			Token0     common.Address `json:"token0"`
+			Token1     common.Address `json:"token1"`
+			ExchangeId *big.Int       `json:"exchangeId"`
+			Enabled    bool           `json:"enabled"`
+		}{v.Token0, v.Token1, v.ExchangeId, v.Enabled})
 	}
 	return nil
 }
@@ -81,10 +94,10 @@ func TestTokens(t *testing.T) {
 
 func TestPoolInfo(t *testing.T) {
 	out := struct {
-		Token0     common.Address
-		Token1     common.Address
-		ExchangeID *big.Int
-		Enabled    bool
+		Token0     common.Address `json:"token0"`
+		Token1     common.Address `json:"token1"`
+		ExchangeId *big.Int       `json:"exchangeId"`
+		Enabled    bool           `json:"enabled"`
 	}{common.HexToAddress("0x1"), common.HexToAddress("0x2"), big.NewInt(1), true}
 	st := &stubContract{callRes: out}
 	c := &Client{c: st, callCtx: &bind.CallOpts{}}

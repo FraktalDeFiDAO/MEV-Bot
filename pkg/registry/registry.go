@@ -21,6 +21,7 @@ type contract interface {
 // Client wraps calls to the on-chain Registry contract.
 type Client struct {
 	c       contract
+	rpc     *ethclient.Client
 	auth    *bind.TransactOpts
 	callCtx *bind.CallOpts
 }
@@ -55,7 +56,7 @@ func New(ctx context.Context, addr common.Address, rpc *ethclient.Client, key *e
 		return nil, err
 	}
 	bc := bind.NewBoundContract(addr, parsed, rpc, rpc, rpc)
-	return &Client{c: bc, auth: auth, callCtx: &bind.CallOpts{Context: ctx}}, nil
+	return &Client{c: bc, rpc: rpc, auth: auth, callCtx: &bind.CallOpts{Context: ctx}}, nil
 }
 
 // AddPool submits a transaction to record a pool in the registry.
@@ -66,6 +67,11 @@ func (r *Client) AddPool(pool, token0, token1 common.Address, exchangeID uint64)
 // AddToken submits a transaction to record a token in the registry.
 func (r *Client) AddToken(token common.Address, decimals uint8) (*types.Transaction, error) {
 	return r.c.Transact(r.auth, "addToken", token, decimals)
+}
+
+// WaitMined blocks until the transaction is mined and returns the receipt.
+func (r *Client) WaitMined(ctx context.Context, tx *types.Transaction) (*types.Receipt, error) {
+	return bind.WaitMined(ctx, r.rpc, tx)
 }
 
 // Tokens returns the list of registered token addresses.
@@ -98,10 +104,14 @@ func (r *Client) PoolInfo(ctx context.Context, pool common.Address) (PoolInfo, e
 	if err := r.c.Call(&bind.CallOpts{Context: ctx}, &raw, "getPool", pool); err != nil {
 		return PoolInfo{}, err
 	}
-	return PoolInfo{
-		Token0:     raw[0].(common.Address),
-		Token1:     raw[1].(common.Address),
-		ExchangeID: raw[2].(*big.Int),
-		Enabled:    raw[3].(bool),
-	}, nil
+	if len(raw) == 0 {
+		return PoolInfo{}, nil
+	}
+	tup := raw[0].(struct {
+		Token0     common.Address `json:"token0"`
+		Token1     common.Address `json:"token1"`
+		ExchangeId *big.Int       `json:"exchangeId"`
+		Enabled    bool           `json:"enabled"`
+	})
+	return PoolInfo{Token0: tup.Token0, Token1: tup.Token1, ExchangeID: tup.ExchangeId, Enabled: tup.Enabled}, nil
 }
