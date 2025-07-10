@@ -28,7 +28,7 @@ func (s *stubContract) Call(opts *bind.CallOpts, result *[]interface{}, method s
 			Token1     common.Address `json:"token1"`
 			ExchangeId *big.Int       `json:"exchangeId"`
 			Enabled    bool           `json:"enabled"`
-		}{v.Token0, v.Token1, v.ExchangeID, v.Enabled}
+    }{v.Token0, v.Token1, v.ExchangeID, v.Enabled}
 		*result = append(*result, tup)
 	case struct {
 		Token0     common.Address `json:"token0"`
