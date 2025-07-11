@@ -56,6 +56,7 @@ var (
 	newExecutor = func(addr common.Address, backend bind.ContractBackend) (arbitrageExecutor, error) {
 		return bindings.NewArbitrageExecutor(addr, backend)
 	}
+
 	tradeABI        abi.ABI
 	tradeEventID    common.Hash
 	syncABI         abi.ABI
@@ -112,6 +113,7 @@ func init() {
 // Entry point for the MEV bot. Connects to an Arbitrum node and listens for events.
 
 func run(ctx context.Context, rpcURL, regAddr, keyHex string) error {
+	fmt.Printf("rpcURL: %v\n", rpcURL)
 	client, err := connectClient(ctx, rpcURL)
 	if err != nil {
 		return err
@@ -640,6 +642,7 @@ func main() {
 	knownPools = make(map[common.Address]struct{})
 
 	rpcURL := os.Getenv("RPC_URL")
+	fmt.Printf("RPC_RUL: %v\n", rpcURL)
 	if rpcURL == "" {
 		rpcURL = "https://arb1.arbitrum.io/rpc"
 	}
