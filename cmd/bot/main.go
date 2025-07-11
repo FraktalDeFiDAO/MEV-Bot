@@ -13,6 +13,7 @@ import (
 
 	"github.com/joho/godotenv"
 
+	"github.com/FraktalDeFiDAO/MEV-Bot/cmd/bot/bindings"
 	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/arb"
 	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/ethutil"
 	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/market"
@@ -38,11 +39,22 @@ type registryClient interface {
 	PoolInfo(context.Context, common.Address) (registry.PoolInfo, error)
 }
 
+type arbitrageExecutor interface {
+	Execute(opts *bind.TransactOpts, pairA, pairB common.Address, maxIn, step *big.Int) (*types.Transaction, error)
+}
+
+type nonceSource interface {
+	Next(context.Context) (uint64, error)
+}
+
 // connectClient abstracts ethutil.ConnectClient for testability.
 var (
 	connectClient = ethutil.ConnectClient
 	newRegistry   = func(ctx context.Context, addr common.Address, rpc *ethclient.Client, key *ecdsa.PrivateKey) (registryClient, error) {
 		return registry.New(ctx, addr, rpc, key)
+	}
+	newExecutor = func(addr common.Address, backend bind.ContractBackend) (arbitrageExecutor, error) {
+		return bindings.NewArbitrageExecutor(addr, backend)
 	}
 	newBlockWatcher = func(sub watcher.HeaderSubscriber) runner { return watcher.NewBlockWatcher(sub) }
 	tradeABI        abi.ABI
@@ -60,6 +72,10 @@ var (
 		return watcher.NewEventWatcher(sub, q, pairLogHandler)
 	}
 	arbMon      *arb.Monitor
+	execAddr    common.Address
+	arbExec     arbitrageExecutor
+	execAuth    *bind.TransactOpts
+	nonceMgr    nonceSource
 	marketStore *market.Persistent
 	regClient   registryClient
 	rpcClient   *ethclient.Client
@@ -104,7 +120,8 @@ func run(ctx context.Context, rpcURL, regAddr, keyHex string) error {
 	defer client.Close()
 	rpcClient = client
 
-	if _, err := client.ChainID(ctx); err != nil {
+	chainID, err := client.ChainID(ctx)
+	if err != nil {
 		return err
 	}
 
@@ -129,6 +146,30 @@ func run(ctx context.Context, rpcURL, regAddr, keyHex string) error {
 		loadRegistry(ctx)
 	}
 	syncRegistry()
+
+	if arbExec == nil {
+		if addr := os.Getenv("EXECUTOR_ADDRESS"); addr != "" && keyHex != "" {
+			key, err := crypto.HexToECDSA(strings.TrimPrefix(keyHex, "0x"))
+			if err != nil {
+				log.Printf("executor key error: %v", err)
+			} else if c, err := newExecutor(common.HexToAddress(addr), client); err == nil {
+				auth, err := bind.NewKeyedTransactorWithChainID(key, chainID)
+				if err != nil {
+					log.Printf("transactor error: %v", err)
+				} else if nm, err := ethutil.NewNonceManager(ctx, client, auth.From); err == nil {
+					execAddr = common.HexToAddress(addr)
+					arbExec = c
+					execAuth = auth
+					nonceMgr = nm
+					log.Printf("arbitrage executor enabled %s", addr)
+				} else {
+					log.Printf("nonce manager error: %v", err)
+				}
+			} else {
+				log.Printf("executor init error: %v", err)
+			}
+		}
+	}
 
 	bw := newBlockWatcher(client)
 	// listen for TradeExecuted and Sync events
@@ -164,6 +205,7 @@ func run(ctx context.Context, rpcURL, regAddr, keyHex string) error {
 			}
 		}
 		arbMon = arb.NewMonitor(pairs, 500, 1)
+		arbMon.SetHandler(opportunityHandler)
 	}
 
 	// run watchers until context cancellation
@@ -312,6 +354,26 @@ func profitLogHandler(l types.Log) {
 	} else {
 		log.Printf("log tx: %s", l.TxHash.Hex())
 	}
+}
+
+// opportunityHandler submits an arbitrage transaction when an opportunity is detected.
+func opportunityHandler(a, b common.Address, amountIn, profit *big.Int) {
+	if arbExec == nil || execAuth == nil || nonceMgr == nil {
+		return
+	}
+	nonce, err := nonceMgr.Next(context.Background())
+	if err != nil {
+		log.Printf("nonce error: %v", err)
+		return
+	}
+	opts := *execAuth
+	opts.Nonce = big.NewInt(int64(nonce))
+	tx, err := arbExec.Execute(&opts, a, b, big.NewInt(arbMon.MaxIn()), big.NewInt(arbMon.Step()))
+	if err != nil {
+		log.Printf("execute tx error: %v", err)
+		return
+	}
+	log.Printf("sent arbitrage tx %s", tx.Hash().Hex())
 }
 
 // recordPool caches the given pool and tokens and updates the registry if needed.

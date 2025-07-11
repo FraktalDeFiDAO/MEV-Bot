@@ -35,7 +35,12 @@ func (bw *BlockWatcher) Run(ctx context.Context) error {
 	for {
 		sub, err := bw.sub.SubscribeNewHead(ctx, headers)
 		if err != nil {
-			return err
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+			log.Printf("block subscribe error: %v", err)
+			time.Sleep(time.Second)
+			continue
 		}
 
 	inner:
@@ -89,7 +94,12 @@ func (ew *EventWatcher) Run(ctx context.Context) error {
 	for {
 		sub, err := ew.sub.SubscribeFilterLogs(ctx, ew.query, logsCh)
 		if err != nil {
-			return err
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+			log.Printf("log subscribe error: %v", err)
+			time.Sleep(time.Second)
+			continue
 		}
 
 	inner:
