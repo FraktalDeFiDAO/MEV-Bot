@@ -1,6 +1,7 @@
 package arb
 
 import (
+	"io"
 	"log"
 	"math/big"
 	"testing"
@@ -21,12 +22,30 @@ func TestMonitorDetects(t *testing.T) {
 	m := NewMonitor([][2]common.Address{{addrA, addrB}}, 500, 1)
 	logger := &logCatcher{}
 	log.SetOutput(logger)
-	defer log.SetOutput(nil)
+	defer log.SetOutput(io.Discard)
 
 	m.Update(addrA, big.NewInt(1000), big.NewInt(1000))
 	m.Update(addrB, big.NewInt(1200), big.NewInt(800))
 	if logger.msgs == 0 {
 		t.Fatalf("expected log message")
+	}
+}
+
+func TestMonitorHandler(t *testing.T) {
+	addrA := common.HexToAddress("0x1")
+	addrB := common.HexToAddress("0x2")
+	m := NewMonitor([][2]common.Address{{addrA, addrB}}, 500, 1)
+	called := false
+	m.SetHandler(func(a, b common.Address, amt, profit *big.Int) {
+		called = true
+		if a != addrA || b != addrB {
+			t.Fatalf("unexpected addresses")
+		}
+	})
+	m.Update(addrA, big.NewInt(1000), big.NewInt(1000))
+	m.Update(addrB, big.NewInt(1200), big.NewInt(800))
+	if !called {
+		t.Fatalf("handler not invoked")
 	}
 }
 

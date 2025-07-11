@@ -53,6 +53,36 @@ func (goodLogSubscriber) SubscribeFilterLogs(ctx context.Context, q ethereum.Fil
 	return sub, nil
 }
 
+type flakySubscriber struct{ fail bool }
+
+func (f *flakySubscriber) SubscribeNewHead(ctx context.Context, ch chan<- *types.Header) (ethereum.Subscription, error) {
+	if f.fail {
+		f.fail = false
+		return nil, errors.New("boom")
+	}
+	sub := stubSub{errCh: make(chan error)}
+	go func() {
+		ch <- &types.Header{Number: big.NewInt(2)}
+		close(sub.errCh)
+	}()
+	return sub, nil
+}
+
+type flakyLogSubscriber struct{ fail bool }
+
+func (f *flakyLogSubscriber) SubscribeFilterLogs(ctx context.Context, q ethereum.FilterQuery, ch chan<- types.Log) (ethereum.Subscription, error) {
+	if f.fail {
+		f.fail = false
+		return nil, errors.New("boom")
+	}
+	sub := stubSub{errCh: make(chan error)}
+	go func() {
+		ch <- types.Log{TxHash: common.HexToHash("0x3")}
+		close(sub.errCh)
+	}()
+	return sub, nil
+}
+
 type errAfterSubscriber struct{}
 
 func (errAfterSubscriber) SubscribeNewHead(ctx context.Context, ch chan<- *types.Header) (ethereum.Subscription, error) {
@@ -76,9 +106,14 @@ func (errAfterLogSubscriber) SubscribeFilterLogs(ctx context.Context, q ethereum
 }
 
 func TestBlockWatcherSubscribeError(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
 	bw := NewBlockWatcher(errSubscriber{err: errors.New("boom")})
-	if err := bw.Run(context.Background()); err == nil {
-		t.Fatal("expected error")
+	go func() {
+		time.Sleep(20 * time.Millisecond)
+		cancel()
+	}()
+	if err := bw.Run(ctx); err != context.Canceled {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
@@ -95,9 +130,14 @@ func TestBlockWatcherRun(t *testing.T) {
 }
 
 func TestEventWatcherSubscribeError(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
 	ew := NewEventWatcher(errLogSubscriber{err: errors.New("boom")}, ethereum.FilterQuery{}, nil)
-	if err := ew.Run(context.Background()); err == nil {
-		t.Fatal("expected error")
+	go func() {
+		time.Sleep(20 * time.Millisecond)
+		cancel()
+	}()
+	if err := ew.Run(ctx); err != context.Canceled {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
@@ -139,5 +179,37 @@ func TestEventWatcherSubscriptionError(t *testing.T) {
 	}()
 	if err := ew.Run(ctx); err != context.Canceled {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestBlockWatcherRetry(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	sub := &flakySubscriber{fail: true}
+	bw := NewBlockWatcher(sub)
+	go func() {
+		time.Sleep(30 * time.Millisecond)
+		cancel()
+	}()
+	if err := bw.Run(ctx); err != context.Canceled {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if sub.fail {
+		t.Fatalf("subscriber not retried")
+	}
+}
+
+func TestEventWatcherRetry(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	sub := &flakyLogSubscriber{fail: true}
+	ew := NewEventWatcher(sub, ethereum.FilterQuery{}, nil)
+	go func() {
+		time.Sleep(30 * time.Millisecond)
+		cancel()
+	}()
+	if err := ew.Run(ctx); err != context.Canceled {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if sub.fail {
+		t.Fatalf("subscriber not retried")
 	}
 }
