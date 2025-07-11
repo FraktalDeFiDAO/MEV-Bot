@@ -11,10 +11,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/arb"
 	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/market"
 	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/registry"
 	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/watcher"
 	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 )
@@ -170,6 +172,20 @@ type stubRegistry struct {
 	pools  [][3]common.Address
 }
 
+type stubExec struct{ called bool }
+
+func (s *stubExec) Execute(opts *bind.TransactOpts, a, b common.Address, maxIn, step *big.Int) (*types.Transaction, error) {
+	s.called = true
+	return types.NewTx(&types.LegacyTx{Nonce: 0}), nil
+}
+
+type stubNonce struct{ n uint64 }
+
+func (s *stubNonce) Next(context.Context) (uint64, error) {
+	s.n++
+	return s.n - 1, nil
+}
+
 func (s *stubRegistry) AddPool(a, b, c common.Address, id uint64) (*types.Transaction, error) {
 	s.pools = append(s.pools, [3]common.Address{a, b, c})
 	tx := types.NewTx(&types.LegacyTx{Nonce: 0})
@@ -219,5 +235,18 @@ func TestSyncRegistry(t *testing.T) {
 	}
 	if len(stub.pools) != 1 {
 		t.Fatalf("registry pools not updated: %v", stub.pools)
+	}
+}
+
+func TestOpportunityHandler(t *testing.T) {
+	arbExec = &stubExec{}
+	execAuth = &bind.TransactOpts{}
+	nonceMgr = &stubNonce{}
+	arbMon = arb.NewMonitor([][2]common.Address{{common.HexToAddress("0x1"), common.HexToAddress("0x2")}}, 10, 1)
+	arbMon.SetHandler(opportunityHandler)
+	arbMon.Update(common.HexToAddress("0x1"), big.NewInt(1000), big.NewInt(1000))
+	arbMon.Update(common.HexToAddress("0x2"), big.NewInt(1200), big.NewInt(800))
+	if !arbExec.(*stubExec).called {
+		t.Fatalf("executor not called")
 	}
 }
