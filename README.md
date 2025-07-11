@@ -24,19 +24,19 @@ This project explores building a MEV bot targeting decentralized exchanges on Ar
    Utility packages under `pkg/` keep the bot logic modular. For example,
    `ethutil.ConnectClient` provides a simple wrapper for creating Ethereum RPC
    clients. The `watcher` package offers utilities for observing chain activity.
-   `BlockWatcher` logs new block headers only when `DEBUG=1` is set to reduce
-   noise and automatically reconnects if the websocket drops. `EventWatcher`
-   behaves the same way and subscribes only to
+   `EventWatcher` subscribes to
    profitable trade events and Uniswap V2 `Sync` events. When a
    `TradeExecuted` event is observed the bot prints the input and profit so
    profitable trades are logged in real time. `Sync` events are decoded to
    log pool price updates, allowing the bot to track market movements without
    processing every log on the chain.
 5. Start the bot with `make run` (or `make run-dev` to run using `go run`).
-   The bot automatically loads environment variables from a `.env` file if
-   present using `godotenv`. Set `DEBUG=1` to enable more verbose logging with
-   file and line numbers. **Use a WebSocket RPC URL** (e.g. `wss://...`) so the
-   block and event watchers can subscribe to notifications. HTTP endpoints will
+   The bot loads configuration from a TOML file when `-config <file>` is
+   provided, falling back to environment variables from a `.env` file if present
+   via `godotenv`. Set `DEBUG=1` or `debug = true` in the config to enable
+   verbose logging with file and line numbers. **Use a WebSocket RPC URL**
+   (e.g. `wss://...`) so the
+   event watchers can subscribe to notifications. HTTP endpoints will
    only log an error and no events will be seen. The bot will look for a `PAIRS`
    environment variable specifying pairs to monitor for arbitrage, formatted as
    `"addr1,addr2;addr3,addr4"`.
@@ -169,10 +169,10 @@ adds a single token, while `POST /pools` accepts just a pool address and
 automatically fetches its tokens before updating the registry when a registry
 address and key are configured.
 
-A sample `.env.sample` file is provided containing environment variables used by
-the Go bot, such as `RPC_URL` and `PRIVATE_KEY`. Copy it to `.env` and adjust the
-values as needed. `RPC_URL` defaults to the public Arbitrum RPC endpoint if left
-unset. `MARKET_CACHE` controls where discovered pools are cached locally and
+Sample configuration is provided in `config.sample.toml` with the same fields as
+the former `.env` file such as `rpc_url` and `private_key`. `rpc_url` defaults
+to the public Arbitrum RPC endpoint if left unset. `market_cache` controls where
+discovered pools are cached locally and
 should point to a SQLite database file such as `market.db`. `REGISTRY_ADDRESS`
 specifies an on-chain registry contract to persist newly discovered pools and
 tokens. Cached pools include their token addresses so the bot can resync them to
@@ -209,5 +209,5 @@ To calculate Solidity test coverage, run:
 forge coverage
 ```
 
-See `.env.sample` for the full list of environment variables understood by the
-bot.
+See `config.sample.toml` for the full list of configuration fields understood by
+the bot.

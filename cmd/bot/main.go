@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"math/big"
@@ -12,7 +13,9 @@ import (
 	"strings"
 
 	"github.com/joho/godotenv"
+	"github.com/pelletier/go-toml/v2"
 
+	"github.com/FraktalDeFiDAO/MEV-Bot/cmd/bot/bindings"
 	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/arb"
 	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/ethutil"
 	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/market"
@@ -38,13 +41,35 @@ type registryClient interface {
 	PoolInfo(context.Context, common.Address) (registry.PoolInfo, error)
 }
 
+type arbitrageExecutor interface {
+	Execute(opts *bind.TransactOpts, pairA, pairB common.Address, maxIn, step *big.Int) (*types.Transaction, error)
+}
+
+type nonceSource interface {
+	Next(context.Context) (uint64, error)
+}
+
+// Config represents bot configuration loaded from a TOML file.
+type Config struct {
+	RPCURL       string `toml:"rpc_url"`
+	RegistryAddr string `toml:"registry_address"`
+	PrivateKey   string `toml:"private_key"`
+	MarketCache  string `toml:"market_cache"`
+	Factories    string `toml:"factories"`
+	Pairs        string `toml:"pairs"`
+	ExecutorAddr string `toml:"executor_address"`
+	Debug        bool   `toml:"debug"`
+}
+
 // connectClient abstracts ethutil.ConnectClient for testability.
 var (
 	connectClient = ethutil.ConnectClient
 	newRegistry   = func(ctx context.Context, addr common.Address, rpc *ethclient.Client, key *ecdsa.PrivateKey) (registryClient, error) {
 		return registry.New(ctx, addr, rpc, key)
 	}
-	newBlockWatcher = func(sub watcher.HeaderSubscriber) runner { return watcher.NewBlockWatcher(sub) }
+	newExecutor = func(addr common.Address, backend bind.ContractBackend) (arbitrageExecutor, error) {
+		return bindings.NewArbitrageExecutor(addr, backend)
+	}
 	tradeABI        abi.ABI
 	tradeEventID    common.Hash
 	syncABI         abi.ABI
@@ -60,12 +85,65 @@ var (
 		return watcher.NewEventWatcher(sub, q, pairLogHandler)
 	}
 	arbMon      *arb.Monitor
+	execAddr    common.Address
+	arbExec     arbitrageExecutor
+	execAuth    *bind.TransactOpts
+	nonceMgr    nonceSource
 	marketStore *market.Persistent
 	regClient   registryClient
 	rpcClient   *ethclient.Client
 	knownTokens map[common.Address]struct{}
 	knownPools  map[common.Address]struct{}
 )
+
+func loadConfig(path, profile string) (Config, error) {
+	if path == "" {
+		path = "config.toml"
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return Config{}, err
+	}
+	m := make(map[string]Config)
+	if err := toml.Unmarshal(data, &m); err != nil {
+		return Config{}, err
+	}
+	if profile == "" {
+		profile = "default"
+	}
+	c, ok := m[profile]
+	if !ok {
+		return Config{}, fmt.Errorf("profile %s not found", profile)
+	}
+	return c, nil
+}
+
+func applyConfig(c Config) {
+	if c.RPCURL != "" {
+		os.Setenv("RPC_URL", c.RPCURL)
+	}
+	if c.RegistryAddr != "" {
+		os.Setenv("REGISTRY_ADDRESS", c.RegistryAddr)
+	}
+	if c.PrivateKey != "" {
+		os.Setenv("PRIVATE_KEY", c.PrivateKey)
+	}
+	if c.MarketCache != "" {
+		os.Setenv("MARKET_CACHE", c.MarketCache)
+	}
+	if c.Factories != "" {
+		os.Setenv("FACTORIES", c.Factories)
+	}
+	if c.Pairs != "" {
+		os.Setenv("PAIRS", c.Pairs)
+	}
+	if c.ExecutorAddr != "" {
+		os.Setenv("EXECUTOR_ADDRESS", c.ExecutorAddr)
+	}
+	if c.Debug {
+		os.Setenv("DEBUG", "1")
+	}
+}
 
 func init() {
 	var err error
@@ -104,7 +182,8 @@ func run(ctx context.Context, rpcURL, regAddr, keyHex string) error {
 	defer client.Close()
 	rpcClient = client
 
-	if _, err := client.ChainID(ctx); err != nil {
+	chainID, err := client.ChainID(ctx)
+	if err != nil {
 		return err
 	}
 
@@ -129,8 +208,32 @@ func run(ctx context.Context, rpcURL, regAddr, keyHex string) error {
 		loadRegistry(ctx)
 	}
 	syncRegistry()
+	logMarkets()
 
-	bw := newBlockWatcher(client)
+	if arbExec == nil {
+		if addr := os.Getenv("EXECUTOR_ADDRESS"); addr != "" && keyHex != "" {
+			key, err := crypto.HexToECDSA(strings.TrimPrefix(keyHex, "0x"))
+			if err != nil {
+				log.Printf("executor key error: %v", err)
+			} else if c, err := newExecutor(common.HexToAddress(addr), client); err == nil {
+				auth, err := bind.NewKeyedTransactorWithChainID(key, chainID)
+				if err != nil {
+					log.Printf("transactor error: %v", err)
+				} else if nm, err := ethutil.NewNonceManager(ctx, client, auth.From); err == nil {
+					execAddr = common.HexToAddress(addr)
+					arbExec = c
+					execAuth = auth
+					nonceMgr = nm
+					log.Printf("arbitrage executor enabled %s", addr)
+				} else {
+					log.Printf("nonce manager error: %v", err)
+				}
+			} else {
+				log.Printf("executor init error: %v", err)
+			}
+		}
+	}
+
 	// listen for TradeExecuted and Sync events
 	query := ethereum.FilterQuery{
 		Topics: [][]common.Hash{{tradeEventID, syncEventID}},
@@ -164,14 +267,10 @@ func run(ctx context.Context, rpcURL, regAddr, keyHex string) error {
 			}
 		}
 		arbMon = arb.NewMonitor(pairs, 500, 1)
+		arbMon.SetHandler(opportunityHandler)
 	}
 
 	// run watchers until context cancellation
-	go func() {
-		if err := bw.Run(ctx); err != nil && ctx.Err() == nil {
-			log.Printf("block watcher error: %v", err)
-		}
-	}()
 	go func() {
 		if err := ew.Run(ctx); err != nil && ctx.Err() == nil {
 			log.Printf("event watcher error: %v", err)
@@ -312,6 +411,26 @@ func profitLogHandler(l types.Log) {
 	} else {
 		log.Printf("log tx: %s", l.TxHash.Hex())
 	}
+}
+
+// opportunityHandler submits an arbitrage transaction when an opportunity is detected.
+func opportunityHandler(a, b common.Address, amountIn, profit *big.Int) {
+	if arbExec == nil || execAuth == nil || nonceMgr == nil {
+		return
+	}
+	nonce, err := nonceMgr.Next(context.Background())
+	if err != nil {
+		log.Printf("nonce error: %v", err)
+		return
+	}
+	opts := *execAuth
+	opts.Nonce = big.NewInt(int64(nonce))
+	tx, err := arbExec.Execute(&opts, a, b, big.NewInt(arbMon.MaxIn()), big.NewInt(arbMon.Step()))
+	if err != nil {
+		log.Printf("execute tx error: %v", err)
+		return
+	}
+	log.Printf("sent arbitrage tx %s", tx.Hash().Hex())
 }
 
 // recordPool caches the given pool and tokens and updates the registry if needed.
@@ -552,9 +671,31 @@ func startServer(addr string) {
 	}()
 }
 
+func logMarkets() {
+	if marketStore == nil {
+		return
+	}
+	for _, t := range marketStore.ListTokens() {
+		log.Printf("market token %s", t.Hex())
+	}
+	for _, p := range marketStore.ListPools() {
+		log.Printf("market pool %s %s-%s", p.Address.Hex(), p.Token0.Hex(), p.Token1.Hex())
+	}
+}
+
 func main() {
-	// load environment variables from .env if present
+	cfgPath := flag.String("config", "", "path to config TOML")
+	profile := flag.String("profile", "default", "config profile")
+	flag.Parse()
+
 	_ = godotenv.Load()
+	if *cfgPath != "" {
+		cfg, err := loadConfig(*cfgPath, *profile)
+		if err != nil {
+			log.Fatalf("load config: %v", err)
+		}
+		applyConfig(cfg)
+	}
 
 	if os.Getenv("DEBUG") != "" {
 		log.SetFlags(log.LstdFlags | log.Lshortfile)

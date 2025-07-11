@@ -85,7 +85,7 @@ web_modules/
 
 # Next.js build output
 .next
-out
+web/out
 
 # Nuxt.js build / generate output
 .nuxt
@@ -130,12 +130,15 @@ dist
 .pnp.*
 
 # Foundry build artifacts
-out/
+out/*
+!out/**/
+!out/**/*.json
 cache/
 lib/
 coverage.out
 .gitmodules
 /bot
-cmd/bot/bindings/
+# cmd/bot/bindings contains generated contract bindings but is committed so tests can import the package
+
 web/node_modules/
 web/dist/
