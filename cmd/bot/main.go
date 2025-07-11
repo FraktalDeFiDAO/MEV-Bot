@@ -56,7 +56,7 @@ var (
 	newExecutor = func(addr common.Address, backend bind.ContractBackend) (arbitrageExecutor, error) {
 		return bindings.NewArbitrageExecutor(addr, backend)
 	}
-	newBlockWatcher = func(sub watcher.HeaderSubscriber) runner { return watcher.NewBlockWatcher(sub) }
+
 	tradeABI        abi.ABI
 	tradeEventID    common.Hash
 	syncABI         abi.ABI
@@ -147,6 +147,7 @@ func run(ctx context.Context, rpcURL, regAddr, keyHex string) error {
 		loadRegistry(ctx)
 	}
 	syncRegistry()
+	logMarkets()
 
 	if arbExec == nil {
 		if addr := os.Getenv("EXECUTOR_ADDRESS"); addr != "" && keyHex != "" {
@@ -172,7 +173,6 @@ func run(ctx context.Context, rpcURL, regAddr, keyHex string) error {
 		}
 	}
 
-	bw := newBlockWatcher(client)
 	// listen for TradeExecuted and Sync events
 	query := ethereum.FilterQuery{
 		Topics: [][]common.Hash{{tradeEventID, syncEventID}},
@@ -210,11 +210,6 @@ func run(ctx context.Context, rpcURL, regAddr, keyHex string) error {
 	}
 
 	// run watchers until context cancellation
-	go func() {
-		if err := bw.Run(ctx); err != nil && ctx.Err() == nil {
-			log.Printf("block watcher error: %v", err)
-		}
-	}()
 	go func() {
 		if err := ew.Run(ctx); err != nil && ctx.Err() == nil {
 			log.Printf("event watcher error: %v", err)
@@ -613,6 +608,18 @@ func startServer(addr string) {
 			log.Printf("api server error: %v", err)
 		}
 	}()
+}
+
+func logMarkets() {
+	if marketStore == nil {
+		return
+	}
+	for _, t := range marketStore.ListTokens() {
+		log.Printf("market token %s", t.Hex())
+	}
+	for _, p := range marketStore.ListPools() {
+		log.Printf("market pool %s %s-%s", p.Address.Hex(), p.Token0.Hex(), p.Token1.Hex())
+	}
 }
 
 func main() {

@@ -52,16 +52,8 @@ func TestRun(t *testing.T) {
 	// wait briefly for anvil to start
 	time.Sleep(100 * time.Millisecond)
 
-	bwCalled := false
 	ewCalled := false
 	var capturedQuery ethereum.FilterQuery
-	newBlockWatcher = func(sub watcher.HeaderSubscriber) runner {
-		return runnerFunc(func(ctx context.Context) error {
-			bwCalled = true
-			<-ctx.Done()
-			return ctx.Err()
-		})
-	}
 	newEventWatcher = func(sub watcher.LogSubscriber, q ethereum.FilterQuery) runner {
 		capturedQuery = q
 		return runnerFunc(func(ctx context.Context) error {
@@ -71,7 +63,6 @@ func TestRun(t *testing.T) {
 		})
 	}
 	t.Cleanup(func() {
-		newBlockWatcher = func(sub watcher.HeaderSubscriber) runner { return watcher.NewBlockWatcher(sub) }
 		newEventWatcher = func(sub watcher.LogSubscriber, q ethereum.FilterQuery) runner {
 			return watcher.NewEventWatcher(sub, q, profitLogHandler)
 		}
@@ -87,8 +78,8 @@ func TestRun(t *testing.T) {
 	if err := run(ctx, "http://127.0.0.1:8545", "", ""); err != context.Canceled {
 		t.Fatalf("run failed: %v", err)
 	}
-	if !bwCalled || !ewCalled {
-		t.Fatalf("watchers not called")
+	if !ewCalled {
+		t.Fatalf("event watcher not called")
 	}
 	if len(capturedQuery.Topics) == 0 || len(capturedQuery.Topics[0]) != 2 {
 		t.Fatalf("unexpected query topics: %v", capturedQuery.Topics)
