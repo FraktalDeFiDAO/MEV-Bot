@@ -1,0 +1,10 @@
+[default]
+rpc_url = "https://arb1.arbitrum.io/rpc"
+private_key = "0x0000000000000000000000000000000000000000000000000000000000000000"
+registry_address = ""
+market_cache = "market.db"
+factories = ""
+pairs = ""
+executor_address = ""
+# enable verbose logging
+# debug = true

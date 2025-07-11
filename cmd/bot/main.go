@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"math/big"
@@ -12,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/joho/godotenv"
+	"github.com/pelletier/go-toml/v2"
 
 	"github.com/FraktalDeFiDAO/MEV-Bot/cmd/bot/bindings"
 	"github.com/FraktalDeFiDAO/MEV-Bot/pkg/arb"
@@ -47,6 +49,18 @@ type nonceSource interface {
 	Next(context.Context) (uint64, error)
 }
 
+// Config represents bot configuration loaded from a TOML file.
+type Config struct {
+	RPCURL       string `toml:"rpc_url"`
+	RegistryAddr string `toml:"registry_address"`
+	PrivateKey   string `toml:"private_key"`
+	MarketCache  string `toml:"market_cache"`
+	Factories    string `toml:"factories"`
+	Pairs        string `toml:"pairs"`
+	ExecutorAddr string `toml:"executor_address"`
+	Debug        bool   `toml:"debug"`
+}
+
 // connectClient abstracts ethutil.ConnectClient for testability.
 var (
 	connectClient = ethutil.ConnectClient
@@ -56,7 +70,6 @@ var (
 	newExecutor = func(addr common.Address, backend bind.ContractBackend) (arbitrageExecutor, error) {
 		return bindings.NewArbitrageExecutor(addr, backend)
 	}
-
 	tradeABI        abi.ABI
 	tradeEventID    common.Hash
 	syncABI         abi.ABI
@@ -82,6 +95,55 @@ var (
 	knownTokens map[common.Address]struct{}
 	knownPools  map[common.Address]struct{}
 )
+
+func loadConfig(path, profile string) (Config, error) {
+	if path == "" {
+		path = "config.toml"
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return Config{}, err
+	}
+	m := make(map[string]Config)
+	if err := toml.Unmarshal(data, &m); err != nil {
+		return Config{}, err
+	}
+	if profile == "" {
+		profile = "default"
+	}
+	c, ok := m[profile]
+	if !ok {
+		return Config{}, fmt.Errorf("profile %s not found", profile)
+	}
+	return c, nil
+}
+
+func applyConfig(c Config) {
+	if c.RPCURL != "" {
+		os.Setenv("RPC_URL", c.RPCURL)
+	}
+	if c.RegistryAddr != "" {
+		os.Setenv("REGISTRY_ADDRESS", c.RegistryAddr)
+	}
+	if c.PrivateKey != "" {
+		os.Setenv("PRIVATE_KEY", c.PrivateKey)
+	}
+	if c.MarketCache != "" {
+		os.Setenv("MARKET_CACHE", c.MarketCache)
+	}
+	if c.Factories != "" {
+		os.Setenv("FACTORIES", c.Factories)
+	}
+	if c.Pairs != "" {
+		os.Setenv("PAIRS", c.Pairs)
+	}
+	if c.ExecutorAddr != "" {
+		os.Setenv("EXECUTOR_ADDRESS", c.ExecutorAddr)
+	}
+	if c.Debug {
+		os.Setenv("DEBUG", "1")
+	}
+}
 
 func init() {
 	var err error
@@ -623,8 +685,18 @@ func logMarkets() {
 }
 
 func main() {
-	// load environment variables from .env if present
+	cfgPath := flag.String("config", "", "path to config TOML")
+	profile := flag.String("profile", "default", "config profile")
+	flag.Parse()
+
 	_ = godotenv.Load()
+	if *cfgPath != "" {
+		cfg, err := loadConfig(*cfgPath, *profile)
+		if err != nil {
+			log.Fatalf("load config: %v", err)
+		}
+		applyConfig(cfg)
+	}
 
 	if os.Getenv("DEBUG") != "" {
 		log.SetFlags(log.LstdFlags | log.Lshortfile)

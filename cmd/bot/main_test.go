@@ -49,8 +49,8 @@ func TestRun(t *testing.T) {
 		cmd.Wait()
 	})
 
-	// wait briefly for anvil to start
-	time.Sleep(100 * time.Millisecond)
+	// wait for anvil to start
+	time.Sleep(500 * time.Millisecond)
 
 	ewCalled := false
 	var capturedQuery ethereum.FilterQuery
